@@ -83,12 +83,12 @@
     .pill-btn:active {
       transform: scale(0.97);
     }
-    /* 動画ビューポート＆基準ライン */
+    /* 大型動画ビューポート（基準線なし・広視野設計） */
     #video-viewport {
       position: relative;
       width: 100%;
       aspect-ratio: 16 / 9;
-      background-color: #09090b;
+      background-color: #050507;
       border-radius: 16px;
       overflow: hidden;
       border: 1px solid #27272a;
@@ -104,30 +104,18 @@
       justify-content: center;
       will-change: transform;
     }
-    #reference-line {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 50%;
-      width: 2px;
-      background-color: #ef4444;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
-      z-index: 25;
-      pointer-events: none;
+    /* 打刻ターゲット行の選択・完了ハイライト */
+    .stamp-row {
+      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
     }
-    #reference-line-handle {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #ef4444;
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    .stamp-row-active {
+      border-color: #38bdf8 !important;
+      background-color: rgba(56, 189, 248, 0.12) !important;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
+    }
+    .stamp-row-done {
+      border-color: rgba(16, 185, 129, 0.55);
+      background-color: rgba(16, 185, 129, 0.06);
     }
     /* トースト通知 */
     #toast-container {
@@ -141,7 +129,7 @@
       gap: 8px;
       pointer-events: none;
       width: 90%;
-      max-width: 420px;
+      max-width: 440px;
     }
     .toast-item {
       background-color: #1f1f23;
@@ -162,21 +150,6 @@
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* 打刻ボックスのアクティブ＆打刻済みハイライト */
-    .stamp-box {
-      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
-    }
-    .stamp-box.is-active {
-      border-color: #38bdf8 !important;
-      background-color: rgba(56, 189, 248, 0.10) !important;
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
-    }
-    .stamp-box.is-stamped {
-      border-color: rgba(16, 185, 129, 0.45);
-    }
-    .stamp-box.is-active.is-stamped {
-      border-color: #38bdf8 !important;
-    }
   </style>
 </head>
 <body class="bg-pureblack text-zinc-100 antialiased selection:bg-sky-500 selection:text-white">
@@ -194,7 +167,7 @@
         </svg>
       </div>
 
-      <!-- アプリタイトル（サブタイトル表記なし・ピュアブラックミニマル） -->
+      <!-- アプリタイトル（ピュアブラックミニマル・サブタイトルなし） -->
       <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-12">
         Todai Swim App
       </h1>
@@ -214,7 +187,7 @@
         </button>
       </div>
 
-      <!-- 控えめな保存件数インジケータ -->
+      <!-- 保存件数インジケータ -->
       <div class="mt-12 text-xs text-zinc-500 font-medium tracking-wider">
         保存済みレース: <span id="home-saved-count" class="text-zinc-300 font-semibold">0</span> 件
       </div>
@@ -224,8 +197,8 @@
   <!-- ==================== 2. レース分析画面 (ANALYZE SCREEN) ==================== -->
   <div id="screen-analyze" style="display: none;" class="min-h-screen w-full flex-col bg-pureblack pb-20">
     <!-- トップナビゲーションバー -->
-    <header class="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-borderDark px-4 py-3">
-      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+    <header class="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-borderDark px-3 sm:px-5 py-2.5">
+      <div class="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-3">
           <button type="button" onclick="window.showScreen('screen-home')"
             class="pill-btn px-3.5 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-2 cursor-pointer">
@@ -238,7 +211,7 @@
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <label class="pill-btn px-3.5 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-emerald-300 flex items-center gap-1.5 cursor-pointer" title="公式ラップCSVを読み込んで分析画面に反映">
             <i class="fa-solid fa-file-csv text-emerald-400"></i>
             <span>CSV読込</span>
@@ -263,16 +236,16 @@
       </div>
     </header>
 
-    <!-- メインコンテンツ -->
-    <main class="max-w-7xl w-full mx-auto px-4 pt-5 flex flex-col gap-5">
+    <!-- メインコンテンツ（ワイド画面設計: 左8列に大型動画、右4列に横並び打刻ドック） -->
+    <main class="max-w-[1720px] w-full mx-auto px-3 sm:px-5 pt-4 flex flex-col gap-5">
 
-      <!-- 上段: 動画プレイヤー＆タイムスタンプ打刻パネル -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <!-- 上段: 大型動画プレイヤー（左）＆ 横並び打刻パネル（右） -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-5 items-start">
 
-        <!-- 左カラム (7列): 動画プレイヤー・ズーム/パン・基準ライン・コマ送り -->
-        <div class="lg:col-span-7 apple-card p-4 sm:p-5 flex flex-col gap-4">
-          <!-- ソース切替タブ -->
-          <div class="flex flex-wrap items-center justify-between gap-2">
+        <!-- 左カラム (8列): 大型動画プレイヤー・ズーム/パン・コマ送り -->
+        <div class="lg:col-span-8 apple-card p-3.5 sm:p-5 flex flex-col gap-3.5">
+          <!-- ソース切替＆コンパクト入力ヘッダー -->
+          <div class="flex flex-wrap items-center justify-between gap-2.5">
             <div class="inline-flex p-1 bg-black rounded-full border border-borderDark">
               <button id="tab-media-local" type="button" onclick="window.switchMediaSource('local')"
                 class="pill-btn px-4 py-1.5 text-xs font-bold bg-white text-black cursor-pointer">
@@ -284,27 +257,25 @@
               </button>
             </div>
 
-            <!-- 操作モード切替（パン移動 vs 基準ライン移動） -->
-            <div class="inline-flex p-1 bg-black rounded-full border border-borderDark">
-              <button id="mode-pan-btn" type="button" onclick="window.setViewportMode('pan')"
-                class="pill-btn px-3 py-1 text-[11px] font-bold bg-sky-500 text-black cursor-pointer">
-                <i class="fa-solid fa-hand mr-1"></i>動画パン移動
-              </button>
-              <button id="mode-line-btn" type="button" onclick="window.setViewportMode('line')"
-                class="pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer">
-                <i class="fa-solid fa-arrows-left-right mr-1"></i>基準ライン移動
-              </button>
+            <!-- ズーム操作（基準線削除済み・パン移動はドラッグで常時有効） -->
+            <div class="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full border border-borderDark">
+              <span class="text-[11px] font-semibold text-zinc-400 whitespace-nowrap"><i class="fa-solid fa-magnifying-glass-plus text-sky-400 mr-1"></i>ズーム:</span>
+              <input id="zoom-slider" type="range" min="1" max="5" step="0.1" value="1" oninput="window.setZoomLevel(this.value)"
+                class="w-24 sm:w-32 accent-sky-400 cursor-pointer">
+              <span id="zoom-value-label" class="text-xs font-mono font-bold text-white w-9 text-right">1.0x</span>
+              <button type="button" onclick="window.setZoomLevel(2.0)" class="px-2 py-0.5 bg-surface hover:bg-surfaceHover border border-borderDark rounded-full text-[10px] font-mono text-zinc-300 cursor-pointer">2x</button>
+              <button type="button" onclick="window.resetPanZoom()" class="px-2 py-0.5 bg-surface hover:bg-surfaceHover border border-borderDark rounded-full text-[10px] text-zinc-300 hover:text-white cursor-pointer">リセット</button>
             </div>
           </div>
 
           <!-- ローカル動画入力エリア -->
-          <div id="panel-source-local" style="display: flex;" class="flex-wrap items-center justify-between gap-2 bg-black/60 p-3 rounded-xl border border-borderDark">
+          <div id="panel-source-local" style="display: flex;" class="flex-wrap items-center justify-between gap-2 bg-black/60 px-3.5 py-2.5 rounded-xl border border-borderDark">
             <label class="pill-btn px-4 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-white cursor-pointer inline-flex items-center gap-2">
               <i class="fa-solid fa-folder-open text-sky-400"></i>
-              <span>動画ファイルを選択 (MP4/MOV)</span>
+              <span>動画ファイルを選択 (MP4 / MOV)</span>
               <input id="local-video-input" type="file" accept="video/*" class="hidden" onchange="window.handleLocalVideoUpload(event)">
             </label>
-            <span id="local-video-filename" class="text-xs text-zinc-400 truncate max-w-[220px]">未選択</span>
+            <span id="local-video-filename" class="text-xs text-zinc-400 truncate max-w-[260px]">動画未選択（ファイルを選択してください）</span>
           </div>
 
           <!-- YouTubeリンク引用エリア -->
@@ -326,18 +297,13 @@
               </div>
             </div>
             <div class="flex items-center justify-between text-[11px] text-zinc-400 px-1">
-              <span id="yt-status-text">YouTube URLを入力して「動画読込」を押すと埋め込み再生・保存ができます</span>
+              <span id="yt-status-text">YouTube URLを入力して「動画読込」を押すと右側の打刻パネルで直接打刻できます</span>
               <span id="yt-saved-badge" style="display: none;" class="text-emerald-400 font-semibold"><i class="fa-solid fa-check-circle mr-1"></i>リンク保持中</span>
             </div>
           </div>
 
-          <!-- 動画ビューポート（ズーム・パン・基準ライン） -->
-          <div id="video-viewport">
-            <!-- 垂直基準ライン -->
-            <div id="reference-line" style="left: 50%;">
-              <div id="reference-line-handle">基準線 50%</div>
-            </div>
-
+          <!-- 大型動画ビューポート（基準線なし・広々16:9表示） -->
+          <div id="video-viewport" class="min-h-[300px] sm:min-h-[440px] xl:min-h-[540px]">
             <!-- ズーム・パン変換レイヤー -->
             <div id="video-transform-layer">
               <!-- ローカル動画プレイヤー -->
@@ -346,68 +312,31 @@
               <!-- YouTube埋め込みコンテナ -->
               <div id="yt-player-container" style="display: none;" class="w-full h-full bg-black flex items-center justify-center">
                 <div class="text-center text-zinc-500 text-xs p-4">
-                  <i class="fa-brands fa-youtube text-3xl text-red-500/70 mb-2 block"></i>
-                  YouTube URLを読み込むとここに表示されます
+                  <i class="fa-brands fa-youtube text-4xl text-red-500/70 mb-2 block"></i>
+                  YouTube URLを読み込むとここに大きく表示されます
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- ズーム＆基準ライン微調整バー -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-black/50 p-3 rounded-xl border border-borderDark">
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-semibold text-zinc-400 whitespace-nowrap"><i class="fa-solid fa-magnifying-glass-plus text-sky-400 mr-1"></i>ズーム:</span>
-              <input id="zoom-slider" type="range" min="1" max="5" step="0.1" value="1" oninput="window.setZoomLevel(this.value)"
-                class="flex-1 accent-sky-400 cursor-pointer">
-              <span id="zoom-value-label" class="text-xs font-mono font-bold text-white w-10 text-right">1.0x</span>
-              <button type="button" onclick="window.resetPanZoom()" class="px-2 py-1 bg-surface border border-borderDark rounded-lg text-[10px] text-zinc-300 hover:text-white cursor-pointer">リセット</button>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] font-semibold text-zinc-400 whitespace-nowrap"><i class="fa-solid fa-grip-lines-vertical text-red-400 mr-1"></i>基準線:</span>
-              <input id="line-slider" type="range" min="0" max="100" step="0.5" value="50" oninput="window.setReferenceLinePos(this.value)"
-                class="flex-1 accent-red-500 cursor-pointer">
-              <span id="line-value-label" class="text-xs font-mono font-bold text-white w-10 text-right">50%</span>
-            </div>
-          </div>
-
-          <!-- 再生コントロール＆フレームコマ送り＆手動ストップウォッチ -->
-          <div class="flex flex-col gap-2.5 bg-black/70 p-3.5 rounded-xl border border-borderDark">
-            <!-- シークバー（ローカル動画用） -->
-            <div id="local-seek-wrapper" class="flex items-center gap-3">
-              <span id="video-current-time" class="font-mono text-xs sm:text-sm font-bold text-sky-400 w-20">00:00.00</span>
-              <input id="video-seek-bar" type="range" min="0" max="100" step="0.01" value="0" oninput="window.seekLocalVideo(this.value)"
-                class="flex-1 accent-sky-400 cursor-pointer">
+          <!-- 再生コントロール＆フレームコマ送り＆シークバー -->
+          <div class="flex flex-col gap-2.5 bg-black/75 p-3.5 rounded-xl border border-borderDark">
+            <!-- 統合シークバー（ローカル動画＆YouTube共通） -->
+            <div class="flex items-center gap-3">
+              <span id="video-current-time" class="font-mono text-sm sm:text-base font-extrabold text-sky-400 w-24">00:00.00</span>
+              <input id="video-seek-bar" type="range" min="0" max="100" step="0.01" value="0" oninput="window.seekActiveMedia(this.value)"
+                class="flex-1 accent-sky-400 cursor-pointer h-2">
               <span id="video-duration-time" class="font-mono text-xs text-zinc-500 w-20 text-right">00:00.00</span>
-            </div>
-
-            <!-- YouTube用ストップウォッチバー（YouTube再生中の打刻用） -->
-            <div id="yt-stopwatch-wrapper" style="display: none;" class="flex flex-wrap items-center justify-between gap-2 bg-surface/80 px-3 py-2 rounded-xl border border-borderDark">
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] font-semibold text-zinc-400">YouTube計測タイマー:</span>
-                <span id="yt-stopwatch-display" class="font-mono text-lg font-extrabold text-sky-400">0.00</span>
-                <span class="text-xs text-zinc-500">秒</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <button type="button" onclick="window.toggleYtStopwatch()" id="btn-yt-sw-toggle"
-                  class="pill-btn px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer">
-                  <i class="fa-solid fa-play mr-1"></i>開始
-                </button>
-                <button type="button" onclick="window.resetYtStopwatch()"
-                  class="pill-btn px-3 py-1.5 bg-black hover:bg-zinc-900 border border-borderDark text-zinc-300 font-semibold text-xs cursor-pointer">
-                  リセット
-                </button>
-              </div>
             </div>
 
             <!-- 再生・コマ送り・速度ボタン -->
             <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <div class="flex items-center gap-1.5">
+              <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" onclick="window.stepFrame(-5)" class="pill-btn px-2.5 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-mono font-bold text-zinc-200 cursor-pointer" title="-5フレーム">-5F</button>
                 <button type="button" onclick="window.stepFrame(-1)" class="pill-btn px-3 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-mono font-bold text-white cursor-pointer" title="-1フレーム (-0.033s)">
                   <i class="fa-solid fa-backward-step mr-1 text-sky-400"></i>-1F
                 </button>
-                <button id="btn-play-pause" type="button" onclick="window.togglePlayPause()" class="pill-btn px-5 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm cursor-pointer">
+                <button id="btn-play-pause" type="button" onclick="window.togglePlayPause()" class="pill-btn px-5 py-2 bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm cursor-pointer shadow">
                   <i class="fa-solid fa-play mr-1"></i>再生
                 </button>
                 <button type="button" onclick="window.stepFrame(1)" class="pill-btn px-3 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-mono font-bold text-white cursor-pointer" title="+1フレーム (+0.033s)">
@@ -418,182 +347,163 @@
 
               <!-- 再生速度 -->
               <div class="flex items-center gap-1">
-                <button type="button" onclick="window.setPlaybackRate(0.25)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer">0.25x</button>
-                <button type="button" onclick="window.setPlaybackRate(0.5)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer">0.5x</button>
-                <button type="button" onclick="window.setPlaybackRate(1.0)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer">1.0x</button>
+                <span class="text-[11px] text-zinc-500 mr-1 hidden sm:inline">速度:</span>
+                <button type="button" data-rate="0.25" onclick="window.setPlaybackRate(0.25)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer">0.25x</button>
+                <button type="button" data-rate="0.5" onclick="window.setPlaybackRate(0.5)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer">0.5x</button>
+                <button type="button" data-rate="1" onclick="window.setPlaybackRate(1.0)" class="rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer">1.0x</button>
               </div>
             </div>
           </div>
 
-          <!-- クイック連続打刻ドック（動画プレイヤー直下で視線移動なしに連続打刻） -->
-          <div id="quick-stamp-dock" class="bg-gradient-to-r from-sky-950/60 via-surface to-emerald-950/50 p-3.5 rounded-2xl border border-sky-500/40 flex flex-col gap-2.5 shadow-lg">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-black whitespace-nowrap">連続打刻モード</span>
-                <span id="active-stamp-step-label" class="text-xs sm:text-sm font-bold text-white truncate">次: 号砲 (0m)</span>
+          <!-- レース基本条件入力バー（動画下部にコンパクト配置） -->
+          <div class="bg-black/60 p-3.5 rounded-xl border border-borderDark flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-sliders text-sky-400"></i>レース基本条件・公式記録
+              </span>
+              <span id="style-kick-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                ドルフィンキック
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+              <div>
+                <label class="block text-[10px] font-semibold text-zinc-400 mb-1">選手名 *</label>
+                <input id="input-swimmer-name" type="text" placeholder="例: 山田 太郎" value="東大 選手A"
+                  class="apple-input w-full px-2.5 py-1.5 text-xs">
               </div>
-              <span id="active-stamp-progress" class="text-[11px] font-mono text-zinc-400 whitespace-nowrap">0 / 0 完了</span>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="window.moveStampStep(-1)"
-                class="pill-btn px-3.5 py-3 bg-black/80 hover:bg-zinc-900 border border-borderDark text-xs font-bold text-zinc-300 hover:text-white whitespace-nowrap cursor-pointer" title="前の打刻項目へ (↑)">
-                <i class="fa-solid fa-chevron-left mr-1"></i>前へ
-              </button>
-
-              <button id="btn-quick-stamp-main" type="button" onclick="window.stampActiveStep()"
-                class="pill-btn flex-1 py-3 px-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-300 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg cursor-pointer">
-                <i class="fa-solid fa-stopwatch text-base"></i>
-                <span id="btn-quick-stamp-text">ここを打刻して次へ</span>
-              </button>
-
-              <button type="button" onclick="window.moveStampStep(1)"
-                class="pill-btn px-3.5 py-3 bg-black/80 hover:bg-zinc-900 border border-borderDark text-xs font-bold text-zinc-300 hover:text-white whitespace-nowrap cursor-pointer" title="次の打刻項目へ (↓)">
-                次へ<i class="fa-solid fa-chevron-right ml-1"></i>
-              </button>
-            </div>
-
-            <div class="hidden sm:flex items-center justify-between text-[10.5px] text-zinc-400 px-1">
-              <span>ショートカット: <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">Space</kbd> 再生/停止 ・ <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">←/→</kbd> ±1F ・ <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">Enter</kbd> 打刻して次へ</span>
-              <button type="button" onclick="window.clearAllTimestamps()" class="text-zinc-400 hover:text-rose-400 underline cursor-pointer">全打刻クリア</button>
+              <div>
+                <label class="block text-[10px] font-semibold text-zinc-400 mb-1">日付 *</label>
+                <input id="input-race-date" type="date"
+                  class="apple-input w-full px-2.5 py-1.5 text-xs">
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-zinc-400 mb-1">種目（泳法）*</label>
+                <select id="input-race-style" onchange="window.onStyleOrDistanceChange()"
+                  class="apple-input w-full px-2.5 py-1.5 text-xs">
+                  <option value="Fr">自由形 (Fr)</option>
+                  <option value="Ba">背泳ぎ (Ba)</option>
+                  <option value="Br">平泳ぎ (Br)</option>
+                  <option value="Fly">バタフライ (Fly)</option>
+                  <option value="IM">個人メドレー (IM)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-zinc-400 mb-1">距離 (m) *</label>
+                <select id="input-race-distance" onchange="window.onStyleOrDistanceChange()"
+                  class="apple-input w-full px-2.5 py-1.5 text-xs">
+                  <option value="50">50m</option>
+                  <option value="100" selected>100m</option>
+                  <option value="200">200m</option>
+                  <option value="400">400m</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-zinc-400 mb-1">大会名・ラウンド</label>
+                <input id="input-meet-name" type="text" placeholder="例: 全国公 決勝" value="夏季公認記録会"
+                  class="apple-input w-full px-2.5 py-1.5 text-xs">
+              </div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <div>
+                  <label class="block text-[10px] font-semibold text-zinc-400 mb-1">公式記録</label>
+                  <input id="input-official-time" type="text" placeholder="52.34" oninput="window.recalculateAllMetrics()"
+                    class="apple-input w-full px-2 py-1.5 text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-zinc-400 mb-1">RT</label>
+                  <input id="input-reaction-time" type="number" step="0.01" placeholder="0.62" oninput="window.recalculateAllMetrics()"
+                    class="apple-input w-full px-2 py-1.5 text-xs font-mono">
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 右カラム (5列): レース基本情報＆ワンタップ打刻パネル -->
-        <div class="lg:col-span-5 apple-card p-4 sm:p-5 flex flex-col gap-4">
-          <div class="flex items-center justify-between border-b border-borderDark pb-3">
-            <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-              <i class="fa-solid fa-sliders text-sky-400"></i>
-              <span>レース条件・タイムスタンプ打刻</span>
+        <!-- 右カラム (4列): 動画のすぐ横に配置したクイック連続打刻ドック -->
+        <div class="lg:col-span-4 lg:sticky lg:top-16 apple-card p-4 flex flex-col gap-3.5 shadow-2xl">
+          <!-- ドックヘッダー -->
+          <div class="flex items-center justify-between border-b border-borderDark pb-2.5">
+            <h2 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+              <i class="fa-solid fa-bullseye text-sky-400"></i>
+              <span>クイック連続打刻パネル</span>
             </h2>
-            <span id="style-kick-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">
-              ドルフィンキック
+            <span id="stamp-progress-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-surface border border-borderDark text-zinc-300">
+              0 / 9 完了
             </span>
           </div>
 
-          <!-- レースメタデータ入力 -->
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block text-[11px] font-semibold text-zinc-400 mb-1">選手名 *</label>
-              <input id="input-swimmer-name" type="text" placeholder="例: 山田 太郎" value="東大 選手A"
-                class="apple-input w-full px-3 py-2 text-xs sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-zinc-400 mb-1">日付 *</label>
-              <input id="input-race-date" type="date"
-                class="apple-input w-full px-3 py-2 text-xs sm:text-sm">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-zinc-400 mb-1">種目（泳法）*</label>
-              <select id="input-race-style" onchange="window.onStyleOrDistanceChange()"
-                class="apple-input w-full px-3 py-2 text-xs sm:text-sm">
-                <option value="Fr">自由形 (Fr)</option>
-                <option value="Ba">背泳ぎ (Ba)</option>
-                <option value="Br">平泳ぎ (Br)</option>
-                <option value="Fly">バタフライ (Fly)</option>
-                <option value="IM">個人メドレー (IM)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-zinc-400 mb-1">距離 (m) *</label>
-              <select id="input-race-distance" onchange="window.onStyleOrDistanceChange()"
-                class="apple-input w-full px-3 py-2 text-xs sm:text-sm">
-                <option value="50">50m</option>
-                <option value="100" selected>100m</option>
-                <option value="200">200m</option>
-                <option value="400">400m</option>
-              </select>
-            </div>
-            <div class="col-span-2 sm:col-span-1">
-              <label class="block text-[11px] font-semibold text-zinc-400 mb-1">大会名・ラウンド</label>
-              <input id="input-meet-name" type="text" placeholder="例: 全国公 決勝" value="夏季公認記録会"
-                class="apple-input w-full px-3 py-2 text-xs sm:text-sm">
-            </div>
-            <div class="grid grid-cols-2 gap-2 col-span-2 sm:col-span-1">
-              <div>
-                <label class="block text-[11px] font-semibold text-zinc-400 mb-1">公式タイム(秒)</label>
-                <input id="input-official-time" type="text" placeholder="52.34" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2.5 py-2 text-xs sm:text-sm font-mono">
+          <!-- メイン打刻アクションボックス（視線移動ゼロの大型打刻ボタン） -->
+          <div class="bg-black/85 p-3.5 rounded-2xl border border-sky-500/40 flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-sky-400">現在の打刻ターゲット</div>
+                <div id="active-stamp-label" class="text-base sm:text-lg font-extrabold text-white truncate mt-0.5">
+                  ① 号砲 (0m)
+                </div>
               </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-zinc-400 mb-1">RT (反応時間)</label>
-                <input id="input-reaction-time" type="number" step="0.01" placeholder="0.62" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2.5 py-2 text-xs sm:text-sm font-mono">
+              <div class="text-right shrink-0">
+                <div class="text-[10px] text-zinc-400">動画現在時刻</div>
+                <div id="dock-live-time" class="font-mono text-base sm:text-lg font-extrabold text-sky-400">0.00s</div>
               </div>
+            </div>
+
+            <!-- 特大ワンタップ打刻ボタン -->
+            <button id="btn-primary-stamp" type="button" onclick="window.stampActiveTarget()"
+              class="pill-btn w-full py-3.5 px-5 bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-sky-500/20 cursor-pointer">
+              <i class="fa-solid fa-stopwatch text-lg"></i>
+              <span>ここに打刻</span>
+              <span class="hidden sm:inline text-[11px] font-mono bg-black/20 px-2 py-0.5 rounded-full">[Enter]</span>
+            </button>
+
+            <!-- 前へ・次へ＆自動送りトグル -->
+            <div class="flex items-center justify-between gap-2 pt-0.5">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="window.moveActiveTarget(-1)"
+                  class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-bold text-zinc-200 cursor-pointer">
+                  <i class="fa-solid fa-arrow-up mr-1 text-zinc-400"></i>前へ
+                </button>
+                <button type="button" onclick="window.moveActiveTarget(1)"
+                  class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-bold text-zinc-200 cursor-pointer">
+                  次へ<i class="fa-solid fa-arrow-down ml-1 text-zinc-400"></i>
+                </button>
+              </div>
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-zinc-300 cursor-pointer select-none">
+                <input id="chk-auto-advance" type="checkbox" checked class="accent-sky-400 rounded cursor-pointer">
+                <span>自動で次へ進む</span>
+              </label>
             </div>
           </div>
 
-          <!-- スタート局面打刻＆キック数 -->
-          <div class="bg-black/60 p-3 rounded-xl border border-borderDark flex flex-col gap-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-sky-400"><i class="fa-solid fa-flag-checkered mr-1"></i>スタート局面 (0m → 15m)</span>
-              <span class="text-[10px] text-zinc-400">行タップで選択 / ボタンで即打刻</span>
+          <!-- 全チェックポイント一覧（タップで選択・微調整・フレームジャンプ） -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[11px] text-zinc-400 px-1">
+              <span>項目タップで選択 / <i class="fa-solid fa-crosshairs text-sky-400"></i> でその瞬間へ移動</span>
+              <span>単位: 秒</span>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div id="stamp-box-startGun" onclick="window.selectStampStep('startGun')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
-                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startGun')" class="px-2.5 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 text-xs font-bold whitespace-nowrap cursor-pointer">
-                  号砲(0m)
-                </button>
-                <input id="ts-startGun" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startGun')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
-                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
-                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startGun')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
-                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startGun')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
-              </div>
-
-              <div id="stamp-box-startEntry" onclick="window.selectStampStep('startEntry')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
-                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startEntry')" class="px-2.5 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 text-xs font-bold whitespace-nowrap cursor-pointer">
-                  入水
-                </button>
-                <input id="ts-startEntry" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startEntry')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
-                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
-                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startEntry')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
-                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startEntry')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
-              </div>
-
-              <div id="stamp-box-startBreakout" onclick="window.selectStampStep('startBreakout')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
-                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startBreakout')" class="px-2.5 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 text-xs font-bold whitespace-nowrap cursor-pointer">
-                  浮き上がり
-                </button>
-                <input id="ts-startBreakout" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startBreakout')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
-                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
-                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startBreakout')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
-                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startBreakout')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
-              </div>
-
-              <div id="stamp-box-start15m" onclick="window.selectStampStep('start15m')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
-                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('start15m')" class="px-2.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer">
-                  15m通過
-                </button>
-                <input id="ts-start15m" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('start15m')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
-                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
-                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('start15m')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
-                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('start15m')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
-              </div>
+            <div id="stamp-checklist-container" class="flex flex-col gap-1.5 max-h-[340px] xl:max-h-[400px] overflow-y-auto pr-1">
+              <!-- JSで全打刻項目を動的生成 -->
             </div>
+          </div>
 
-            <!-- スタート水中キック回数・浮き上がり距離 -->
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <div class="flex items-center justify-between bg-surface px-3 py-1.5 rounded-xl border border-borderDark">
-                <label id="label-start-kick" class="text-[11px] font-semibold text-zinc-300">ドルフィンキック数</label>
+          <!-- 水中キック回数・浮き上がり距離入力（コンパクト統合） -->
+          <div class="bg-black/65 p-3 rounded-xl border border-borderDark flex flex-col gap-2">
+            <div class="text-[11px] font-bold text-emerald-400 flex items-center justify-between">
+              <span><i class="fa-solid fa-person-swimming mr-1"></i>水中動作（キック数・浮上距離）</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="flex items-center justify-between bg-surface px-2.5 py-1.5 rounded-xl border border-borderDark">
+                <label id="label-start-kick" class="text-[11px] font-semibold text-zinc-300 truncate mr-1">スタートキック</label>
                 <input id="input-start-kicks" type="number" min="0" step="1" placeholder="8" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-16 px-2 py-1 text-xs font-mono text-right">
+                  class="apple-input w-14 px-1.5 py-1 text-xs font-mono text-right">
               </div>
-              <div class="flex items-center justify-between bg-surface px-3 py-1.5 rounded-xl border border-borderDark">
-                <label class="text-[11px] font-semibold text-zinc-300">浮き上がり距離(m)</label>
+              <div class="flex items-center justify-between bg-surface px-2.5 py-1.5 rounded-xl border border-borderDark">
+                <label class="text-[11px] font-semibold text-zinc-300 truncate mr-1">浮上距離(m)</label>
                 <input id="input-start-breakout-dist" type="number" min="0" max="15" step="0.1" placeholder="12.5" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-16 px-2 py-1 text-xs font-mono text-right">
+                  class="apple-input w-14 px-1.5 py-1 text-xs font-mono text-right">
               </div>
             </div>
-          </div>
-
-          <!-- ターン＆ゴール打刻エリア（距離に応じて動的生成） -->
-          <div class="bg-black/60 p-3 rounded-xl border border-borderDark flex flex-col gap-2.5 max-h-[260px] overflow-y-auto">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-purple-400"><i class="fa-solid fa-rotate mr-1"></i>ターン20m (壁前5m〜壁後15m) & ゴール</span>
-            </div>
-            <div id="dynamic-turns-container" class="flex flex-col gap-2">
+            <!-- ターン別キック回数入力（距離に応じて動的生成） -->
+            <div id="dynamic-turn-kicks-container" class="grid grid-cols-2 gap-2">
               <!-- JSで動的生成 -->
             </div>
           </div>
@@ -869,37 +779,38 @@
   <!-- トースト通知コンテナ -->
   <div id="toast-container"></div>
 
+  <!-- YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
   <script>
     (function() {
       'use strict';
 
-      // ストレージキー
       var STORAGE_KEY = 'todai_swim_app_races_v1';
 
       // アプリケーション状態
       var appState = {
         currentScreen: 'screen-home',
         mediaSource: 'local', // 'local' | 'youtube'
-        viewportMode: 'pan',  // 'pan' | 'line'
         zoom: 1.0,
         panX: 0,
         panY: 0,
-        linePercent: 50,
         isDragging: false,
         dragStartX: 0,
         dragStartY: 0,
         dragInitialPanX: 0,
         dragInitialPanY: 0,
-        // YouTube状態
+        // YouTube状態 & IFrame API Player
         ytUrl: '',
         ytVideoId: '',
         ytStartSec: 0,
-        // YouTube用ストップウォッチ状態
-        ytSwRunning: false,
-        ytSwStartTime: 0,
-        ytSwElapsed: 0,
-        ytSwTimerId: null,
+        ytPlayer: null,
+        ytPollTimer: null,
+        ytApiReady: false,
+        // 打刻チェックリスト管理
+        stampTargets: [],
+        activeStampKey: 'startGun',
         // 編集・再読込中のIDと保護用YouTube情報
         loadedRaceId: null,
         preservedYoutube: {
@@ -907,16 +818,17 @@
           videoId: '',
           startSec: 0
         },
-        // 現在の公式ラップ表データ（CSV読込・手入力同期用）
+        // 現在の公式ラップ表データ
         currentLapTable: [],
-        // 連続打刻用アクティブステップキー
-        activeStampKey: 'startGun',
         // 4階層ブラウザ状態
-        historyLevel: 1, // 1:選手, 2:種目, 3:大会/タイム一覧, 4:詳細
+        historyLevel: 1,
         selectedSwimmer: '',
-        selectedEventKey: '', //例: "100_Ba"
-        selectedRaceId: '',
-        detailPreviewOpen: false
+        selectedEventKey: '',
+        selectedRaceId: ''
+      };
+
+      window.onYouTubeIframeAPIReady = function() {
+        appState.ytApiReady = true;
       };
 
       // ==================== ユーティリティ関数 ====================
@@ -945,7 +857,7 @@
               }
             }, 260);
           }
-        }, 2800);
+        }, 2600);
       };
 
       function escapeHtml(str) {
@@ -1010,6 +922,15 @@
         return 'ドルフィンキック';
       }
 
+      function getTurnDistances(distance) {
+        var d = parseInt(distance, 10) || 100;
+        var list = [];
+        for (var m = 50; m < d; m += 50) {
+          list.push(m);
+        }
+        return list;
+      }
+
       // ==================== ストレージ管理 ====================
       function getSavedRaces() {
         try {
@@ -1038,7 +959,6 @@
         }
       }
 
-      // 初回サンプルデータの自動シード（空の場合のみ）
       function seedInitialSampleDataIfEmpty() {
         var existing = getSavedRaces();
         if (existing.length > 0) {
@@ -1084,6 +1004,7 @@
                 { dist: 50, turn20m: 9.70, breakoutDur: 5.45, kicks: 8 }
               ],
               totalTurn20m: 9.70,
+              avgTurn20m: 9.70,
               cleanSwimTime: 40.00,
               cleanSwimDist: 65,
               cleanSwimSpeed: 1.63
@@ -1129,6 +1050,7 @@
                 { dist: 50, turn20m: 9.95, breakoutDur: 5.60, kicks: 7 }
               ],
               totalTurn20m: 9.95,
+              avgTurn20m: 9.95,
               cleanSwimTime: 40.20,
               cleanSwimDist: 65,
               cleanSwimSpeed: 1.62
@@ -1140,17 +1062,13 @@
         setSavedRaces(sampleRaces);
       }
 
-      // ==================== 1. 画面遷移制御（確実動作保証） ====================
+      // ==================== 1. 画面遷移制御 ====================
       window.showScreen = function(screenId) {
         var screenIds = ['screen-home', 'screen-analyze', 'screen-history'];
         for (var i = 0; i < screenIds.length; i++) {
           var el = document.getElementById(screenIds[i]);
           if (el) {
-            if (screenIds[i] === screenId) {
-              el.style.display = 'flex';
-            } else {
-              el.style.display = 'none';
-            }
+            el.style.display = (screenIds[i] === screenId) ? 'flex' : 'none';
           }
         }
         appState.currentScreen = screenId;
@@ -1168,14 +1086,290 @@
         }
       };
 
-      // ==================== 2. YouTube URL解析・埋め込み・復元機能 ====================
+      // ==================== 2. 動画プレイヤー・YouTube API・ズーム/パン ====================
+      function getCurrentMediaTime() {
+        if (appState.mediaSource === 'youtube') {
+          if (appState.ytPlayer && typeof appState.ytPlayer.getCurrentTime === 'function') {
+            var t = appState.ytPlayer.getCurrentTime();
+            return isNaN(t) ? 0 : t;
+          }
+          return appState.ytStartSec || 0;
+        } else {
+          var vid = document.getElementById('local-video-player');
+          return vid && !isNaN(vid.currentTime) ? vid.currentTime : 0;
+        }
+      }
+
+      function updateMediaTimeUI(curSec, durSec) {
+        var curEl = document.getElementById('video-current-time');
+        var durEl = document.getElementById('video-duration-time');
+        var seekEl = document.getElementById('video-seek-bar');
+        var dockTimeEl = document.getElementById('dock-live-time');
+
+        if (curEl) curEl.textContent = formatClock(curSec);
+        if (dockTimeEl) dockTimeEl.textContent = curSec.toFixed(2) + 's';
+        if (durEl && durSec > 0) durEl.textContent = formatClock(durSec);
+        if (seekEl && durSec > 0) {
+          seekEl.max = String(durSec);
+          seekEl.value = String(curSec);
+        }
+      }
+
+      function startYtPolling() {
+        stopYtPolling();
+        appState.ytPollTimer = setInterval(function() {
+          if (appState.mediaSource !== 'youtube') return;
+          if (appState.ytPlayer && typeof appState.ytPlayer.getCurrentTime === 'function') {
+            var c = appState.ytPlayer.getCurrentTime() || 0;
+            var d = typeof appState.ytPlayer.getDuration === 'function' ? (appState.ytPlayer.getDuration() || 0) : 0;
+            updateMediaTimeUI(c, d);
+          }
+        }, 80);
+      }
+
+      function stopYtPolling() {
+        if (appState.ytPollTimer) {
+          clearInterval(appState.ytPollTimer);
+          appState.ytPollTimer = null;
+        }
+      }
+
+      window.handleLocalVideoUpload = function(event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+        var vid = document.getElementById('local-video-player');
+        var nameLabel = document.getElementById('local-video-filename');
+        if (!vid) return;
+
+        window.switchMediaSource('local');
+        var blobUrl = URL.createObjectURL(file);
+        vid.src = blobUrl;
+        vid.load();
+        if (nameLabel) nameLabel.textContent = file.name;
+        window.resetPanZoom();
+        window.showToast('ローカル動画を読み込みました', 'success');
+      };
+
+      window.seekActiveMedia = function(val) {
+        var sec = parseFloat(val);
+        if (isNaN(sec)) return;
+        if (appState.mediaSource === 'youtube') {
+          if (appState.ytPlayer && typeof appState.ytPlayer.seekTo === 'function') {
+            appState.ytPlayer.seekTo(sec, true);
+            updateMediaTimeUI(sec, appState.ytPlayer.getDuration ? appState.ytPlayer.getDuration() : 0);
+          }
+        } else {
+          var vid = document.getElementById('local-video-player');
+          if (vid) {
+            vid.currentTime = sec;
+            updateMediaTimeUI(sec, vid.duration || 0);
+          }
+        }
+      };
+
+      window.jumpToTimestamp = function(key) {
+        var inp = document.getElementById('ts-' + key);
+        if (!inp || inp.value === '') {
+          window.showToast('この項目にはまだタイムが打刻されていません', 'warning');
+          return;
+        }
+        var sec = parseFloat(inp.value);
+        if (isNaN(sec)) return;
+
+        if (appState.mediaSource === 'youtube') {
+          if (appState.ytPlayer && typeof appState.ytPlayer.seekTo === 'function') {
+            if (typeof appState.ytPlayer.pauseVideo === 'function') appState.ytPlayer.pauseVideo();
+            appState.ytPlayer.seekTo(sec, true);
+            updateMediaTimeUI(sec, appState.ytPlayer.getDuration ? appState.ytPlayer.getDuration() : 0);
+          }
+        } else {
+          var vid = document.getElementById('local-video-player');
+          if (vid) {
+            vid.pause();
+            vid.currentTime = sec;
+            updateMediaTimeUI(sec, vid.duration || 0);
+          }
+        }
+        window.setActiveStampTarget(key);
+        window.showToast(sec.toFixed(2) + '秒 のフレームへ移動しました', 'info');
+      };
+
+      window.togglePlayPause = function() {
+        var btn = document.getElementById('btn-play-pause');
+        if (appState.mediaSource === 'youtube') {
+          if (!appState.ytPlayer || typeof appState.ytPlayer.getPlayerState !== 'function') {
+            window.showToast('先にYouTube URLを読み込んでください', 'warning');
+            return;
+          }
+          var state = appState.ytPlayer.getPlayerState();
+          if (state === 1) {
+            appState.ytPlayer.pauseVideo();
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          } else {
+            appState.ytPlayer.playVideo();
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>一時停止';
+          }
+        } else {
+          var vid = document.getElementById('local-video-player');
+          if (!vid || !vid.src) {
+            window.showToast('先に動画ファイルを選択してください', 'warning');
+            return;
+          }
+          if (vid.paused) {
+            vid.play();
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>一時停止';
+          } else {
+            vid.pause();
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          }
+        }
+      };
+
+      window.stepFrame = function(frames) {
+        var delta = frames / 30;
+        var btn = document.getElementById('btn-play-pause');
+        if (appState.mediaSource === 'youtube') {
+          if (!appState.ytPlayer || typeof appState.ytPlayer.getCurrentTime !== 'function') return;
+          if (typeof appState.ytPlayer.pauseVideo === 'function') appState.ytPlayer.pauseVideo();
+          if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          var cur = appState.ytPlayer.getCurrentTime() || 0;
+          var next = Math.max(0, cur + delta);
+          appState.ytPlayer.seekTo(next, true);
+          updateMediaTimeUI(next, appState.ytPlayer.getDuration ? appState.ytPlayer.getDuration() : 0);
+        } else {
+          var vid = document.getElementById('local-video-player');
+          if (!vid || !vid.src) return;
+          vid.pause();
+          if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          var nextLoc = Math.max(0, Math.min(vid.duration || 99999, (vid.currentTime || 0) + delta));
+          vid.currentTime = nextLoc;
+          updateMediaTimeUI(nextLoc, vid.duration || 0);
+        }
+      };
+
+      window.setPlaybackRate = function(rate) {
+        var btns = document.querySelectorAll('.rate-btn');
+        for (var i = 0; i < btns.length; i++) {
+          var bRate = parseFloat(btns[i].getAttribute('data-rate'));
+          if (Math.abs(bRate - rate) < 0.01) {
+            btns[i].className = 'rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer';
+          } else {
+            btns[i].className = 'rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer';
+          }
+        }
+
+        if (appState.mediaSource === 'youtube') {
+          if (appState.ytPlayer && typeof appState.ytPlayer.setPlaybackRate === 'function') {
+            appState.ytPlayer.setPlaybackRate(rate);
+          }
+        } else {
+          var vid = document.getElementById('local-video-player');
+          if (vid) vid.playbackRate = rate;
+        }
+      };
+
+      // ズーム＆パン制御（基準線なし・シンプルパン操作）
+      function applyTransformLayer() {
+        var layer = document.getElementById('video-transform-layer');
+        if (!layer) return;
+        layer.style.transform = 'translate(' + appState.panX + 'px, ' + appState.panY + 'px) scale(' + appState.zoom + ')';
+      }
+
+      window.setZoomLevel = function(val) {
+        var z = parseFloat(val);
+        if (isNaN(z)) z = 1.0;
+        z = Math.max(1.0, Math.min(5.0, z));
+        appState.zoom = z;
+        if (z === 1.0) {
+          appState.panX = 0;
+          appState.panY = 0;
+        }
+        var slider = document.getElementById('zoom-slider');
+        var label = document.getElementById('zoom-value-label');
+        if (slider) slider.value = String(z);
+        if (label) label.textContent = z.toFixed(1) + 'x';
+        applyTransformLayer();
+      };
+
+      window.resetPanZoom = function() {
+        appState.zoom = 1.0;
+        appState.panX = 0;
+        appState.panY = 0;
+        var slider = document.getElementById('zoom-slider');
+        var label = document.getElementById('zoom-value-label');
+        if (slider) slider.value = '1';
+        if (label) label.textContent = '1.0x';
+        applyTransformLayer();
+      };
+
+      function initViewportInteractions() {
+        var viewport = document.getElementById('video-viewport');
+        var localVid = document.getElementById('local-video-player');
+
+        if (localVid) {
+          localVid.addEventListener('timeupdate', function() {
+            if (appState.mediaSource === 'local') {
+              updateMediaTimeUI(localVid.currentTime || 0, localVid.duration || 0);
+            }
+          });
+          localVid.addEventListener('loadedmetadata', function() {
+            if (appState.mediaSource === 'local') {
+              updateMediaTimeUI(0, localVid.duration || 0);
+            }
+          });
+          localVid.addEventListener('ended', function() {
+            var btn = document.getElementById('btn-play-pause');
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          });
+        }
+
+        if (!viewport) return;
+
+        // マウスホイールズーム
+        viewport.addEventListener('wheel', function(e) {
+          if (appState.mediaSource === 'youtube' && appState.zoom === 1.0) return;
+          e.preventDefault();
+          var delta = e.deltaY < 0 ? 0.2 : -0.2;
+          window.setZoomLevel(appState.zoom + delta);
+        }, { passive: false });
+
+        // ポインタードラッグによる動画パン移動（ズーム時）
+        viewport.addEventListener('pointerdown', function(e) {
+          if (appState.zoom <= 1.0) return;
+          appState.isDragging = true;
+          appState.dragStartX = e.clientX;
+          appState.dragStartY = e.clientY;
+          appState.dragInitialPanX = appState.panX;
+          appState.dragInitialPanY = appState.panY;
+          viewport.setPointerCapture(e.pointerId);
+        });
+
+        viewport.addEventListener('pointermove', function(e) {
+          if (!appState.isDragging) return;
+          var dx = e.clientX - appState.dragStartX;
+          var dy = e.clientY - appState.dragStartY;
+          appState.panX = appState.dragInitialPanX + dx;
+          appState.panY = appState.dragInitialPanY + dy;
+          applyTransformLayer();
+        });
+
+        function endDrag(e) {
+          if (!appState.isDragging) return;
+          appState.isDragging = false;
+          try { viewport.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+
+        viewport.addEventListener('pointerup', endDrag);
+        viewport.addEventListener('pointercancel', endDrag);
+      }
+
+      // ==================== 3. YouTube URL解析・埋め込み・復元機能 ====================
       window.parseYouTubeUrl = function(rawUrl) {
         if (!rawUrl) return { videoId: '', startSec: 0, cleanUrl: '' };
         var url = String(rawUrl).trim();
         var videoId = '';
         var startSec = 0;
 
-        // 動画ID抽出パターン
         var patterns = [
           /(?:youtube\.com\/watch\?v=|youtube\.com\/watch\?.+&v=)([a-zA-Z0-9_-]{11})/,
           /youtu\.be\/([a-zA-Z0-9_-]{11})/,
@@ -1192,13 +1386,11 @@
           }
         }
 
-        // 11文字のID直接入力対応
         if (!videoId && /^[a-zA-Z0-9_-]{11}$/.test(url)) {
           videoId = url;
           url = 'https://www.youtube.com/watch?v=' + videoId;
         }
 
-        // t= または start= から開始秒数抽出
         var timeMatch = url.match(/[?&](?:t|start)=([0-9hms]+)/i);
         if (timeMatch && timeMatch[1]) {
           var tVal = timeMatch[1];
@@ -1221,10 +1413,11 @@
         };
       };
 
-      function buildYouTubeEmbedHtml(videoId, startSec) {
+      function buildYouTubeEmbedHtml(videoId, startSec, iframeId) {
         var startParam = startSec && Number(startSec) > 0 ? '&start=' + Math.floor(Number(startSec)) : '';
+        var idAttr = iframeId ? ' id="' + escapeHtml(iframeId) + '"' : '';
         var embedSrc = 'https://www.youtube.com/embed/' + encodeURIComponent(videoId) + '?rel=0&playsinline=1&enablejsapi=1' + startParam;
-        return '<iframe class="w-full h-full border-0" src="' + embedSrc + '" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+        return '<iframe' + idAttr + ' class="w-full h-full border-0" src="' + embedSrc + '" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
       }
 
       window.switchMediaSource = function(mode) {
@@ -1235,8 +1428,6 @@
         var panelYt = document.getElementById('panel-source-youtube');
         var localVideo = document.getElementById('local-video-player');
         var ytContainer = document.getElementById('yt-player-container');
-        var localSeek = document.getElementById('local-seek-wrapper');
-        var ytSw = document.getElementById('yt-stopwatch-wrapper');
 
         if (mode === 'youtube') {
           if (tabYt) tabYt.className = 'pill-btn px-4 py-1.5 text-xs font-bold bg-white text-black cursor-pointer';
@@ -1248,8 +1439,7 @@
             localVideo.style.display = 'none';
           }
           if (ytContainer) ytContainer.style.display = 'flex';
-          if (localSeek) localSeek.style.display = 'none';
-          if (ytSw) ytSw.style.display = 'flex';
+          startYtPolling();
         } else {
           if (tabLocal) tabLocal.className = 'pill-btn px-4 py-1.5 text-xs font-bold bg-white text-black cursor-pointer';
           if (tabYt) tabYt.className = 'pill-btn px-4 py-1.5 text-xs font-bold text-zinc-400 hover:text-white cursor-pointer';
@@ -1257,8 +1447,10 @@
           if (panelYt) panelYt.style.display = 'none';
           if (ytContainer) ytContainer.style.display = 'none';
           if (localVideo) localVideo.style.display = 'block';
-          if (localSeek) localSeek.style.display = 'flex';
-          if (ytSw) ytSw.style.display = 'none';
+          stopYtPolling();
+          if (appState.ytPlayer && typeof appState.ytPlayer.pauseVideo === 'function') {
+            try { appState.ytPlayer.pauseVideo(); } catch (e) {}
+          }
         }
       };
 
@@ -1297,7 +1489,42 @@
           startSec: finalStartSec
         };
 
-        container.innerHTML = buildYouTubeEmbedHtml(parsed.videoId, finalStartSec);
+        // YT.Player APIが利用可能ならYT.Playerとして生成（コマ送り・現在時刻打刻・速度変更に対応）
+        if (window.YT && typeof window.YT.Player === 'function') {
+          if (appState.ytPlayer && typeof appState.ytPlayer.destroy === 'function') {
+            try { appState.ytPlayer.destroy(); } catch (e) {}
+          }
+          container.innerHTML = '<div id="yt-api-player-target" class="w-full h-full"></div>';
+          appState.ytPlayer = new window.YT.Player('yt-api-player-target', {
+            videoId: parsed.videoId,
+            playerVars: {
+              rel: 0,
+              playsinline: 1,
+              start: Math.floor(finalStartSec),
+              modestbranding: 1
+            },
+            events: {
+              onReady: function(ev) {
+                var d = ev.target.getDuration ? ev.target.getDuration() : 0;
+                updateMediaTimeUI(finalStartSec, d);
+                startYtPolling();
+              },
+              onStateChange: function(ev) {
+                var btn = document.getElementById('btn-play-pause');
+                if (!btn) return;
+                if (ev.data === 1) {
+                  btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>一時停止';
+                } else {
+                  btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+                }
+              }
+            }
+          });
+        } else {
+          appState.ytPlayer = null;
+          container.innerHTML = buildYouTubeEmbedHtml(parsed.videoId, finalStartSec, 'yt-fallback-iframe');
+        }
+
         if (statusText) {
           statusText.textContent = '動画ID: ' + parsed.videoId + ' (開始: ' + finalStartSec + '秒) 読込済';
         }
@@ -1321,661 +1548,313 @@
         appState.ytUrl = '';
         appState.ytVideoId = '';
         appState.ytStartSec = 0;
-        appState.preservedYoutube = { url: '', videoId: '', startSec: 0 };
-
+        if (appState.ytPlayer && typeof appState.ytPlayer.destroy === 'function') {
+          try { appState.ytPlayer.destroy(); } catch (e) {}
+        }
+        appState.ytPlayer = null;
         if (container) {
-          container.innerHTML = '<div class="text-center text-zinc-500 text-xs p-4">' +
-            '<i class="fa-brands fa-youtube text-3xl text-red-500/70 mb-2 block"></i>' +
-            'YouTube URLを読み込むとここに表示されます</div>';
+          container.innerHTML = '<div class="text-center text-zinc-500 text-xs p-4"><i class="fa-brands fa-youtube text-4xl text-red-500/70 mb-2 block"></i>YouTube URLを読み込むとここに大きく表示されます</div>';
         }
         if (statusText) {
-          statusText.textContent = 'YouTube URLを入力して「動画読込」を押すと埋め込み再生・保存ができます';
+          statusText.textContent = 'YouTube URLを入力して「動画読込」を押すと右側の打刻パネルで直接打刻できます';
         }
         if (savedBadge) {
           savedBadge.style.display = 'none';
         }
       };
 
-      // ==================== 3. ローカル動画再生・コマ送り・YouTube計測タイマー ====================
-      window.handleLocalVideoUpload = function(event) {
-        var file = event.target.files && event.target.files[0];
-        if (!file) return;
-        var video = document.getElementById('local-video-player');
-        var nameLabel = document.getElementById('local-video-filename');
-        if (!video) return;
-
-        window.switchMediaSource('local');
-        var objUrl = URL.createObjectURL(file);
-        video.src = objUrl;
-        video.load();
-        if (nameLabel) nameLabel.textContent = file.name;
-        window.showToast('動画を読み込みました: ' + file.name, 'success');
-      };
-
-      function updateLocalVideoTimeUI() {
-        var video = document.getElementById('local-video-player');
-        var curEl = document.getElementById('video-current-time');
-        var durEl = document.getElementById('video-duration-time');
-        var seekEl = document.getElementById('video-seek-bar');
-        if (!video) return;
-
-        var cur = video.currentTime || 0;
-        var dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
-        if (curEl) curEl.textContent = formatClock(cur);
-        if (durEl) durEl.textContent = formatClock(dur);
-        if (seekEl && dur > 0) {
-          seekEl.value = String((cur / dur) * 100);
-        }
-      }
-
-      window.seekLocalVideo = function(percentVal) {
-        var video = document.getElementById('local-video-player');
-        if (!video || !isFinite(video.duration) || video.duration <= 0) return;
-        video.currentTime = (parseFloat(percentVal) / 100) * video.duration;
-        updateLocalVideoTimeUI();
-      };
-
-      window.togglePlayPause = function() {
-        if (appState.mediaSource === 'youtube') {
-          window.toggleYtStopwatch();
-          return;
-        }
-        var video = document.getElementById('local-video-player');
-        var btn = document.getElementById('btn-play-pause');
-        if (!video) return;
-
-        if (!video.src) {
-          window.showToast('先にローカル動画を選択するか、YouTubeタブに切り替えてください', 'warning');
-          return;
-        }
-        if (video.paused) {
-          video.play().catch(function() {});
-          if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>一時停止';
-        } else {
-          video.pause();
-          if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
-        }
-      };
-
-      window.stepFrame = function(frameDelta) {
-        var video = document.getElementById('local-video-player');
-        var btn = document.getElementById('btn-play-pause');
-        if (!video || !video.src) {
-          window.showToast('ローカル動画が読み込まれていません', 'warning');
-          return;
-        }
-        if (!video.paused) {
-          video.pause();
-          if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
-        }
-        var fps = 30;
-        var nextTime = Math.max(0, (video.currentTime || 0) + (frameDelta / fps));
-        if (isFinite(video.duration) && video.duration > 0) {
-          nextTime = Math.min(video.duration, nextTime);
-        }
-        video.currentTime = nextTime;
-        updateLocalVideoTimeUI();
-      };
-
-      window.setPlaybackRate = function(rate) {
-        var video = document.getElementById('local-video-player');
-        if (video) {
-          video.playbackRate = rate;
-        }
-        var btns = document.querySelectorAll('.rate-btn');
-        for (var i = 0; i < btns.length; i++) {
-          var b = btns[i];
-          var isMatch = parseFloat(b.textContent) === rate;
-          b.className = isMatch
-            ? 'rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer'
-            : 'rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer';
-        }
-      };
-
-      function getCurrentStopwatchSec() {
-        if (!appState.ytSwRunning) return appState.ytSwElapsed;
-        return appState.ytSwElapsed + ((performance.now() - appState.ytSwStartTime) / 1000);
-      }
-
-      window.toggleYtStopwatch = function() {
-        var btn = document.getElementById('btn-yt-sw-toggle');
-        var disp = document.getElementById('yt-stopwatch-display');
-        if (appState.ytSwRunning) {
-          appState.ytSwElapsed = getCurrentStopwatchSec();
-          appState.ytSwRunning = false;
-          if (appState.ytSwTimerId) {
-            clearInterval(appState.ytSwTimerId);
-            appState.ytSwTimerId = null;
-          }
-          if (disp) disp.textContent = appState.ytSwElapsed.toFixed(2);
-          if (btn) {
-            btn.className = 'pill-btn px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer';
-            btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>開始';
-          }
-        } else {
-          appState.ytSwStartTime = performance.now();
-          appState.ytSwRunning = true;
-          if (btn) {
-            btn.className = 'pill-btn px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs cursor-pointer';
-            btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>停止';
-          }
-          appState.ytSwTimerId = setInterval(function() {
-            if (disp) disp.textContent = getCurrentStopwatchSec().toFixed(2);
-          }, 30);
-        }
-      };
-
-      window.resetYtStopwatch = function() {
-        appState.ytSwRunning = false;
-        appState.ytSwElapsed = 0;
-        if (appState.ytSwTimerId) {
-          clearInterval(appState.ytSwTimerId);
-          appState.ytSwTimerId = null;
-        }
-        var disp = document.getElementById('yt-stopwatch-display');
-        var btn = document.getElementById('btn-yt-sw-toggle');
-        if (disp) disp.textContent = '0.00';
-        if (btn) {
-          btn.className = 'pill-btn px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer';
-          btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>開始';
-        }
-      };
-
-      // ==================== 4. ビューポートズーム・パン・基準ライン操作 ====================
-      function applyViewportTransform() {
-        var layer = document.getElementById('video-transform-layer');
-        if (!layer) return;
-        layer.style.transform = 'translate(' + appState.panX + 'px, ' + appState.panY + 'px) scale(' + appState.zoom + ')';
-      }
-
-      window.setViewportMode = function(mode) {
-        appState.viewportMode = mode;
-        var panBtn = document.getElementById('mode-pan-btn');
-        var lineBtn = document.getElementById('mode-line-btn');
-        if (mode === 'line') {
-          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-red-500 text-white cursor-pointer';
-          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
-        } else {
-          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-sky-500 text-black cursor-pointer';
-          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
-        }
-      };
-
-      window.setZoomLevel = function(val) {
-        var z = Math.max(1, Math.min(5, parseFloat(val) || 1));
-        appState.zoom = z;
-        if (z === 1) {
-          appState.panX = 0;
-          appState.panY = 0;
-        }
-        var label = document.getElementById('zoom-value-label');
-        var slider = document.getElementById('zoom-slider');
-        if (label) label.textContent = z.toFixed(1) + 'x';
-        if (slider) slider.value = String(z);
-        applyViewportTransform();
-      };
-
-      window.resetPanZoom = function() {
-        appState.zoom = 1.0;
-        appState.panX = 0;
-        appState.panY = 0;
-        var label = document.getElementById('zoom-value-label');
-        var slider = document.getElementById('zoom-slider');
-        if (label) label.textContent = '1.0x';
-        if (slider) slider.value = '1';
-        applyViewportTransform();
-      };
-
-      window.setReferenceLinePos = function(val) {
-        var pct = Math.max(0, Math.min(100, parseFloat(val) || 50));
-        appState.linePercent = pct;
-        var line = document.getElementById('reference-line');
-        var handle = document.getElementById('reference-line-handle');
-        var label = document.getElementById('line-value-label');
-        var slider = document.getElementById('line-slider');
-        if (line) line.style.left = pct + '%';
-        if (handle) handle.textContent = '基準線 ' + Math.round(pct) + '%';
-        if (label) label.textContent = Math.round(pct) + '%';
-        if (slider) slider.value = String(pct);
-      };
-
-      function initViewportInteractions() {
-        var viewport = document.getElementById('video-viewport');
-        var video = document.getElementById('local-video-player');
-        if (video) {
-          video.addEventListener('loadedmetadata', updateLocalVideoTimeUI);
-          video.addEventListener('timeupdate', updateLocalVideoTimeUI);
-          video.addEventListener('ended', function() {
-            var btn = document.getElementById('btn-play-pause');
-            if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
-          });
-        }
-        if (!viewport) return;
-
-        function handlePointerStart(clientX, clientY) {
-          appState.isDragging = true;
-          appState.dragStartX = clientX;
-          appState.dragStartY = clientY;
-          appState.dragInitialPanX = appState.panX;
-          appState.dragInitialPanY = appState.panY;
-          if (appState.viewportMode === 'line') {
-            var rect = viewport.getBoundingClientRect();
-            var pct = ((clientX - rect.left) / rect.width) * 100;
-            window.setReferenceLinePos(pct);
-          }
-        }
-
-        function handlePointerMove(clientX, clientY) {
-          if (!appState.isDragging) return;
-          if (appState.viewportMode === 'line') {
-            var rect = viewport.getBoundingClientRect();
-            var pct = ((clientX - rect.left) / rect.width) * 100;
-            window.setReferenceLinePos(pct);
-          } else {
-            appState.panX = appState.dragInitialPanX + (clientX - appState.dragStartX);
-            appState.panY = appState.dragInitialPanY + (clientY - appState.dragStartY);
-            applyViewportTransform();
-          }
-        }
-
-        function handlePointerEnd() {
-          appState.isDragging = false;
-        }
-
-        viewport.addEventListener('mousedown', function(e) {
-          handlePointerStart(e.clientX, e.clientY);
-        });
-        window.addEventListener('mousemove', function(e) {
-          handlePointerMove(e.clientX, e.clientY);
-        });
-        window.addEventListener('mouseup', handlePointerEnd);
-
-        viewport.addEventListener('touchstart', function(e) {
-          if (e.touches && e.touches.length === 1) {
-            handlePointerStart(e.touches[0].clientX, e.touches[0].clientY);
-          }
-        }, { passive: true });
-        viewport.addEventListener('touchmove', function(e) {
-          if (e.touches && e.touches.length === 1) {
-            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-          }
-        }, { passive: true });
-        viewport.addEventListener('touchend', handlePointerEnd);
-
-        viewport.addEventListener('wheel', function(e) {
-          e.preventDefault();
-          var delta = e.deltaY < 0 ? 0.2 : -0.2;
-          window.setZoomLevel(appState.zoom + delta);
-        }, { passive: false });
-      }
-
-      // ==================== 4.5 種目・距離に応じた動的フォーム構築＆タイムスタンプ打刻 ====================
-      function getTurnDistances(distance) {
-        var d = parseInt(distance, 10) || 100;
-        var list = [];
-        for (var mark = 50; mark < d; mark += 50) {
-          list.push(mark);
-        }
-        return list;
-      }
-
+      // ==================== 4. クイック連続打刻ドック＆動的フォーム管理 ====================
       window.updateStyleTerminology = function() {
-        var styleSel = document.getElementById('input-race-style');
-        var distSel = document.getElementById('input-race-distance');
-        var style = styleSel ? styleSel.value : 'Fr';
-        var dist = distSel ? distSel.value : '100';
-
+        var style = document.getElementById('input-race-style').value || 'Fr';
+        var dist = document.getElementById('input-race-distance').value || '100';
         var kickFull = getKickTermByStyle(style);
         var kickShort = getKickShortTermByStyle(style);
 
-        var badgeEl = document.getElementById('style-kick-badge');
+        var badge = document.getElementById('style-kick-badge');
         var startKickLabel = document.getElementById('label-start-kick');
         var thKick = document.getElementById('th-kick-type');
         var summaryTag = document.getElementById('summary-style-tag');
+        var chart2Title = document.getElementById('chart-2-title');
 
-        if (badgeEl) badgeEl.textContent = kickFull;
-        if (startKickLabel) startKickLabel.textContent = kickShort + '数';
+        if (badge) badge.textContent = kickFull;
+        if (startKickLabel) startKickLabel.textContent = 'スタート' + kickShort;
         if (thKick) thKick.textContent = kickShort;
         if (summaryTag) summaryTag.textContent = dist + 'm ' + getStyleLabel(style);
+        if (chart2Title) chart2Title.textContent = '② 水中動作指標比較 (浮上時間・' + kickShort + '数)';
       };
 
-      window.onStyleOrDistanceChange = function(presetRace) {
-        window.updateStyleTerminology();
+      function buildStampTargetsList(distance) {
+        var d = parseInt(distance, 10) || 100;
+        var list = [
+          { key: 'startGun', label: '① 号砲 (0m)', badge: 'スタート', badgeClass: 'text-sky-400' },
+          { key: 'startEntry', label: '② 入水', badge: 'スタート', badgeClass: 'text-sky-400' },
+          { key: 'startBreakout', label: '③ スタート浮き上がり', badge: 'スタート', badgeClass: 'text-emerald-400' },
+          { key: 'start15m', label: '④ スタート 15m通過', badge: 'スタート', badgeClass: 'text-amber-400' }
+        ];
 
-        var styleSel = document.getElementById('input-race-style');
-        var distSel = document.getElementById('input-race-distance');
-        var style = styleSel ? styleSel.value : 'Fr';
-        var distance = parseInt(distSel ? distSel.value : '100', 10) || 100;
+        var turnDists = getTurnDistances(d);
+        for (var i = 0; i < turnDists.length; i++) {
+          var td = turnDists[i];
+          list.push({ key: 'turn-' + td + '-in5m', label: td + 'm ターン壁前5m', badge: td + 'mターン', badgeClass: 'text-purple-400' });
+          list.push({ key: 'turn-' + td + '-touch', label: td + 'm ターン壁タッチ', badge: td + 'mターン', badgeClass: 'text-purple-400' });
+          list.push({ key: 'turn-' + td + '-breakout', label: td + 'm ターン浮き上がり', badge: td + 'mターン', badgeClass: 'text-emerald-400' });
+          list.push({ key: 'turn-' + td + '-out15m', label: td + 'm ターン壁後15m', badge: td + 'mターン', badgeClass: 'text-amber-400' });
+        }
+
+        list.push({ key: 'finish', label: 'ゴールタッチ (' + d + 'm)', badge: 'ゴール', badgeClass: 'text-rose-400' });
+        return list;
+      }
+
+      window.onStyleOrDistanceChange = function(prefillRace) {
+        window.updateStyleTerminology();
+        var style = document.getElementById('input-race-style').value || 'Fr';
+        var distance = parseInt(document.getElementById('input-race-distance').value, 10) || 100;
         var kickShort = getKickShortTermByStyle(style);
 
-        // 既存入力値のスナップショット保持
-        var prevTurnValues = {};
-        var prevTurnKicks = {};
-        var prevFinishEl = document.getElementById('ts-finish');
-        var prevFinishVal = prevFinishEl ? prevFinishEl.value : '';
-
-        var existingTurnInputs = document.querySelectorAll('[id^="ts-turn-"]');
-        for (var eIdx = 0; eIdx < existingTurnInputs.length; eIdx++) {
-          prevTurnValues[existingTurnInputs[eIdx].id] = existingTurnInputs[eIdx].value;
-        }
-        var existingKickInputs = document.querySelectorAll('[id^="turn-kicks-"]');
-        for (var kIdx = 0; kIdx < existingKickInputs.length; kIdx++) {
-          prevTurnKicks[existingKickInputs[kIdx].id] = existingKickInputs[kIdx].value;
-        }
-
-        // ターン＆ゴール打刻エリア構築
-        var turnsContainer = document.getElementById('dynamic-turns-container');
-        var turnDists = getTurnDistances(distance);
-        if (turnsContainer) {
-          var tHtml = '';
-          for (var i = 0; i < turnDists.length; i++) {
-            var td = turnDists[i];
-            var presetT = presetRace && presetRace.timestamps && presetRace.timestamps.turns ? presetRace.timestamps.turns[String(td)] : null;
-            var presetK = presetRace && presetRace.kickCounts && presetRace.kickCounts.turns ? presetRace.kickCounts.turns[String(td)] : null;
-
-            var vIn5 = presetT && presetT.in5m !== null && presetT.in5m !== undefined ? presetT.in5m : (prevTurnValues['ts-turn-' + td + '-in5m'] || '');
-            var vTouch = presetT && presetT.touch !== null && presetT.touch !== undefined ? presetT.touch : (prevTurnValues['ts-turn-' + td + '-touch'] || '');
-            var vBreak = presetT && presetT.breakout !== null && presetT.breakout !== undefined ? presetT.breakout : (prevTurnValues['ts-turn-' + td + '-breakout'] || '');
-            var vOut15 = presetT && presetT.out15m !== null && presetT.out15m !== undefined ? presetT.out15m : (prevTurnValues['ts-turn-' + td + '-out15m'] || '');
-            var vKick = presetK !== null && presetK !== undefined ? presetK : (prevTurnKicks['turn-kicks-' + td] || '');
-
-            tHtml += '<div class="bg-surface/80 p-2.5 rounded-xl border border-borderDark flex flex-col gap-2">' +
-              '<div class="flex items-center justify-between">' +
-              '<span class="text-xs font-bold text-purple-300">' + td + 'm ターン (壁前5m → 壁後15m)</span>' +
-              '<div class="flex items-center gap-1.5">' +
-              '<label class="text-[10px] text-zinc-400">' + escapeHtml(kickShort) + '数:</label>' +
-              '<input id="turn-kicks-' + td + '" type="number" min="0" step="1" value="' + escapeHtml(vKick) + '" placeholder="6" oninput="window.recalculateAllMetrics()" class="apple-input w-14 px-1.5 py-0.5 text-xs font-mono text-right">' +
-              '</div></div>' +
-              '<div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">' +
-              '<div id="stamp-box-turn-' + td + '-in5m" onclick="window.selectStampStep(\'turn-' + td + '-in5m\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
-              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-in5m\')" class="px-2 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/35 text-purple-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁前5m</button>' +
-              '<input id="ts-turn-' + td + '-in5m" type="number" step="0.01" value="' + escapeHtml(vIn5) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-in5m\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
-              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-in5m\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
-              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-in5m\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
-              '</div>' +
-              '<div id="stamp-box-turn-' + td + '-touch" onclick="window.selectStampStep(\'turn-' + td + '-touch\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
-              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-touch\')" class="px-2 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/35 text-purple-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁タッチ</button>' +
-              '<input id="ts-turn-' + td + '-touch" type="number" step="0.01" value="' + escapeHtml(vTouch) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-touch\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
-              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-touch\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
-              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-touch\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
-              '</div>' +
-              '<div id="stamp-box-turn-' + td + '-breakout" onclick="window.selectStampStep(\'turn-' + td + '-breakout\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
-              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-breakout\')" class="px-2 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">浮き上がり</button>' +
-              '<input id="ts-turn-' + td + '-breakout" type="number" step="0.01" value="' + escapeHtml(vBreak) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-breakout\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
-              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-breakout\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
-              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-breakout\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
-              '</div>' +
-              '<div id="stamp-box-turn-' + td + '-out15m" onclick="window.selectStampStep(\'turn-' + td + '-out15m\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
-              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-out15m\')" class="px-2 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁後15m</button>' +
-              '<input id="ts-turn-' + td + '-out15m" type="number" step="0.01" value="' + escapeHtml(vOut15) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-out15m\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
-              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-out15m\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
-              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-out15m\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
-              '</div></div></div>';
+        // 既存入力値退避（種目変更時に消えないように保持）
+        var savedValues = {};
+        for (var k = 0; k < appState.stampTargets.length; k++) {
+          var oldKey = appState.stampTargets[k].key;
+          var oldEl = document.getElementById('ts-' + oldKey);
+          if (oldEl && oldEl.value !== '') {
+            savedValues[oldKey] = oldEl.value;
           }
-
-          var vFinish = presetRace && presetRace.timestamps && presetRace.timestamps.finish !== null && presetRace.timestamps.finish !== undefined
-            ? presetRace.timestamps.finish
-            : prevFinishVal;
-
-          tHtml += '<div id="stamp-box-finish" onclick="window.selectStampStep(\'finish\')" class="stamp-box flex items-center justify-between gap-2 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">' +
-            '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'finish\')" class="px-3 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 text-xs font-bold whitespace-nowrap cursor-pointer">' +
-            '<i class="fa-solid fa-flag-checkered mr-1"></i>ゴールタッチ (' + distance + 'm)</button>' +
-            '<div class="flex items-center gap-1">' +
-            '<input id="ts-finish" type="number" step="0.01" value="' + escapeHtml(vFinish) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'finish\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-24 px-2.5 py-1.5 text-xs sm:text-sm font-mono text-right">' +
-            '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'finish\')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>' +
-            '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'finish\')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>' +
-            '</div></div>';
-
-          turnsContainer.innerHTML = tHtml;
         }
 
-        // 公式ラップ入力欄構築
+        // prefillRace が渡された場合は上書き
+        if (prefillRace && prefillRace.timestamps) {
+          var pts = prefillRace.timestamps;
+          if (pts.startGun !== null && pts.startGun !== undefined) savedValues['startGun'] = String(pts.startGun);
+          if (pts.startEntry !== null && pts.startEntry !== undefined) savedValues['startEntry'] = String(pts.startEntry);
+          if (pts.startBreakout !== null && pts.startBreakout !== undefined) savedValues['startBreakout'] = String(pts.startBreakout);
+          if (pts.start15m !== null && pts.start15m !== undefined) savedValues['start15m'] = String(pts.start15m);
+          if (pts.finish !== null && pts.finish !== undefined) savedValues['finish'] = String(pts.finish);
+          if (pts.turns) {
+            var tKeys = Object.keys(pts.turns);
+            for (var ti = 0; ti < tKeys.length; ti++) {
+              var tdStr = tKeys[ti];
+              var tObj = pts.turns[tdStr];
+              if (!tObj) continue;
+              if (tObj.in5m !== null && tObj.in5m !== undefined) savedValues['turn-' + tdStr + '-in5m'] = String(tObj.in5m);
+              if (tObj.touch !== null && tObj.touch !== undefined) savedValues['turn-' + tdStr + '-touch'] = String(tObj.touch);
+              if (tObj.breakout !== null && tObj.breakout !== undefined) savedValues['turn-' + tdStr + '-breakout'] = String(tObj.breakout);
+              if (tObj.out15m !== null && tObj.out15m !== undefined) savedValues['turn-' + tdStr + '-out15m'] = String(tObj.out15m);
+            }
+          }
+        }
+
+        // チェックリスト構築＆描画
+        appState.stampTargets = buildStampTargetsList(distance);
+        var checklistEl = document.getElementById('stamp-checklist-container');
+        if (checklistEl) {
+          var rowsHtml = '';
+          for (var i = 0; i < appState.stampTargets.length; i++) {
+            var item = appState.stampTargets[i];
+            var valStr = savedValues[item.key] !== undefined ? savedValues[item.key] : '';
+            rowsHtml += '<div id="stamp-row-' + item.key + '" onclick="window.setActiveStampTarget(\'' + item.key + '\')" ' +
+              'class="stamp-row flex items-center justify-between gap-2 bg-surface px-2.5 py-2 rounded-xl border border-borderDark cursor-pointer">' +
+              '<div class="flex items-center gap-2 min-w-0 flex-1">' +
+              '<span id="stamp-dot-' + item.key + '" class="w-2 h-2 rounded-full bg-zinc-600 shrink-0"></span>' +
+              '<div class="min-w-0">' +
+              '<div class="text-xs font-bold text-white truncate">' + escapeHtml(item.label) + '</div>' +
+              '<div class="text-[10px] font-semibold ' + item.badgeClass + '">' + escapeHtml(item.badge) + '</div>' +
+              '</div></div>' +
+              '<div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">' +
+              '<input id="ts-' + item.key + '" type="number" step="0.01" placeholder="--.--" value="' + escapeHtml(valStr) + '" ' +
+              'onfocus="window.setActiveStampTarget(\'' + item.key + '\')" oninput="window.onManualTimestampEdit(\'' + item.key + '\')" ' +
+              'class="apple-input w-20 px-2 py-1 text-xs font-mono text-right">' +
+              '<button type="button" onclick="window.jumpToTimestamp(\'' + item.key + '\')" ' +
+              'class="w-7 h-7 rounded-lg bg-black hover:bg-zinc-800 border border-borderDark text-sky-400 hover:text-sky-300 flex items-center justify-center text-xs cursor-pointer" title="この打刻時刻へ移動">' +
+              '<i class="fa-solid fa-crosshairs"></i>' +
+              '</button>' +
+              '</div></div>';
+          }
+          checklistEl.innerHTML = rowsHtml;
+        }
+
+        // ターン別キック数入力生成
+        var turnKicksEl = document.getElementById('dynamic-turn-kicks-container');
+        var turnDists = getTurnDistances(distance);
+        if (turnKicksEl) {
+          if (turnDists.length === 0) {
+            turnKicksEl.innerHTML = '';
+          } else {
+            var tkHtml = '';
+            for (var t = 0; t < turnDists.length; t++) {
+              var td = turnDists[t];
+              var preKick = (prefillRace && prefillRace.kickCounts && prefillRace.kickCounts.turns && prefillRace.kickCounts.turns[String(td)] !== null && prefillRace.kickCounts.turns[String(td)] !== undefined)
+                ? String(prefillRace.kickCounts.turns[String(td)])
+                : '';
+              tkHtml += '<div class="flex items-center justify-between bg-surface px-2.5 py-1.5 rounded-xl border border-borderDark">' +
+                '<label class="text-[11px] font-semibold text-zinc-300 truncate mr-1">' + td + 'm後' + escapeHtml(kickShort) + '</label>' +
+                '<input id="turn-kicks-' + td + '" type="number" min="0" step="1" placeholder="6" value="' + escapeHtml(preKick) + '" oninput="window.recalculateAllMetrics()" ' +
+                'class="apple-input w-14 px-1.5 py-1 text-xs font-mono text-right">' +
+                '</div>';
+            }
+            turnKicksEl.innerHTML = tkHtml;
+          }
+        }
+
+        // 公式ラップ入力行生成
         var lapsContainer = document.getElementById('official-laps-container');
         if (lapsContainer) {
-          var prevSplits = {};
-          var prevStrokes = {};
-          var oldSplitEls = document.querySelectorAll('[id^="lap-split-"]');
-          for (var sIdx = 0; sIdx < oldSplitEls.length; sIdx++) {
-            prevSplits[oldSplitEls[sIdx].id] = oldSplitEls[sIdx].value;
-          }
-          var oldStrokeEls = document.querySelectorAll('[id^="lap-strokes-"]');
-          for (var stIdx = 0; stIdx < oldStrokeEls.length; stIdx++) {
-            prevStrokes[oldStrokeEls[stIdx].id] = oldStrokeEls[stIdx].value;
-          }
-
           var lapDists = distance === 50 ? [25, 50] : [];
           if (distance !== 50) {
             for (var ld = 50; ld <= distance; ld += 50) lapDists.push(ld);
           }
-
-          var presetLaps = presetRace && Array.isArray(presetRace.officialLaps) ? presetRace.officialLaps : [];
-          var lHtml = '';
-          for (var j = 0; j < lapDists.length; j++) {
-            var dMark = lapDists[j];
-            var foundLap = presetLaps.find(function(x) { return Number(x.dist) === dMark; });
-            var spVal = foundLap ? (foundLap.split || '') : (prevSplits['lap-split-' + dMark] || '');
-            var stVal = foundLap && foundLap.strokes !== null && foundLap.strokes !== undefined ? foundLap.strokes : (prevStrokes['lap-strokes-' + dMark] || '');
-
-            lHtml += '<div class="flex items-center justify-between gap-2 bg-black/60 px-3 py-2 rounded-xl border border-borderDark">' +
-              '<span class="text-xs font-bold text-zinc-300 w-16">' + dMark + 'm</span>' +
+          var preLaps = (prefillRace && Array.isArray(prefillRace.officialLaps)) ? prefillRace.officialLaps : [];
+          var lapsHtml = '';
+          for (var l = 0; l < lapDists.length; l++) {
+            var dMark = lapDists[l];
+            var foundLap = preLaps.find(function(x) { return Number(x.dist) === dMark; });
+            var spVal = foundLap && foundLap.split ? foundLap.split : '';
+            var stVal = foundLap && foundLap.strokes !== null && foundLap.strokes !== undefined ? String(foundLap.strokes) : '';
+            lapsHtml += '<div class="flex items-center justify-between gap-2 bg-black/60 px-3 py-2 rounded-xl border border-borderDark">' +
+              '<span class="text-xs font-bold text-sky-300 w-14">' + dMark + 'm</span>' +
               '<div class="flex items-center gap-1.5 flex-1">' +
-              '<span class="text-[10px] text-zinc-500">区間タイム:</span>' +
-              '<input id="lap-split-' + dMark + '" type="text" value="' + escapeHtml(spVal) + '" placeholder="27.50" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-2 py-1 text-xs font-mono text-right">' +
+              '<span class="text-[10px] text-zinc-500">区間:</span>' +
+              '<input id="lap-split-' + dMark + '" type="text" placeholder="27.50" value="' + escapeHtml(spVal) + '" oninput="window.recalculateAllMetrics()" ' +
+              'class="apple-input w-full px-2.5 py-1 text-xs font-mono text-right">' +
               '</div>' +
-              '<div class="flex items-center gap-1.5">' +
-              '<span class="text-[10px] text-zinc-500">Str:</span>' +
-              '<input id="lap-strokes-' + dMark + '" type="number" min="0" step="1" value="' + escapeHtml(stVal) + '" placeholder="18" oninput="window.recalculateAllMetrics()" class="apple-input w-14 px-2 py-1 text-xs font-mono text-right">' +
+              '<div class="flex items-center gap-1.5 w-28">' +
+              '<span class="text-[10px] text-zinc-500">St:</span>' +
+              '<input id="lap-strokes-' + dMark + '" type="number" min="0" step="1" placeholder="18" value="' + escapeHtml(stVal) + '" oninput="window.recalculateAllMetrics()" ' +
+              'class="apple-input w-full px-2 py-1 text-xs font-mono text-right">' +
               '</div></div>';
           }
-          lapsContainer.innerHTML = lHtml;
+          lapsContainer.innerHTML = lapsHtml;
         }
 
+        // アクティブターゲット初期化＆状態更新
+        var validActive = appState.stampTargets.some(function(x) { return x.key === appState.activeStampKey; });
+        if (!validActive && appState.stampTargets.length > 0) {
+          appState.activeStampKey = appState.stampTargets[0].key;
+        }
+        window.refreshStampChecklistUI();
         window.recalculateAllMetrics();
         window.refreshCompareRaceDropdown();
-        window.refreshStampVisualStates();
       };
 
-      // ==================== 連続打刻ステップ管理・ワンタップ打刻・シークジャンプ ====================
-      function getOrderedStampSteps() {
-        var distSel = document.getElementById('input-race-distance');
-        var distance = parseInt(distSel ? distSel.value : '100', 10) || 100;
-        var steps = [
-          { key: 'startGun', label: '【スタート】号砲 (0m)' },
-          { key: 'startEntry', label: '【スタート】入水' },
-          { key: 'startBreakout', label: '【スタート】浮き上がり' },
-          { key: 'start15m', label: '【スタート】15m通過' }
-        ];
-        var turnDists = getTurnDistances(distance);
-        for (var i = 0; i < turnDists.length; i++) {
-          var td = turnDists[i];
-          steps.push({ key: 'turn-' + td + '-in5m', label: '【' + td + 'mターン】壁前5m' });
-          steps.push({ key: 'turn-' + td + '-touch', label: '【' + td + 'mターン】壁タッチ' });
-          steps.push({ key: 'turn-' + td + '-breakout', label: '【' + td + 'mターン】浮き上がり' });
-          steps.push({ key: 'turn-' + td + '-out15m', label: '【' + td + 'mターン】壁後15m' });
-        }
-        steps.push({ key: 'finish', label: '【ゴール】ゴールタッチ (' + distance + 'm)' });
-        return steps;
-      }
+      window.setActiveStampTarget = function(key) {
+        appState.activeStampKey = key;
+        window.refreshStampChecklistUI();
+      };
 
-      window.refreshStampVisualStates = function() {
-        var steps = getOrderedStampSteps();
-        if (steps.length === 0) return;
-
-        // 現在のactiveStampKeyが有効か検証
-        var activeIdx = -1;
-        for (var i = 0; i < steps.length; i++) {
-          if (steps[i].key === appState.activeStampKey) {
-            activeIdx = i;
+      window.moveActiveTarget = function(step) {
+        if (!appState.stampTargets || appState.stampTargets.length === 0) return;
+        var idx = -1;
+        for (var i = 0; i < appState.stampTargets.length; i++) {
+          if (appState.stampTargets[i].key === appState.activeStampKey) {
+            idx = i;
             break;
           }
         }
-        if (activeIdx === -1) {
-          activeIdx = 0;
-          appState.activeStampKey = steps[0].key;
-        }
+        var nextIdx = idx + step;
+        if (nextIdx < 0) nextIdx = appState.stampTargets.length - 1;
+        if (nextIdx >= appState.stampTargets.length) nextIdx = 0;
+        appState.activeStampKey = appState.stampTargets[nextIdx].key;
+        window.refreshStampChecklistUI(true);
+      };
 
-        var stampedCount = 0;
-        for (var j = 0; j < steps.length; j++) {
-          var st = steps[j];
-          var box = document.getElementById('stamp-box-' + st.key);
-          var inp = document.getElementById('ts-' + st.key);
-          var hasVal = inp && inp.value !== '';
-          if (hasVal) stampedCount++;
+      window.refreshStampChecklistUI = function(scrollToActive) {
+        var doneCount = 0;
+        var total = appState.stampTargets.length;
+        var activeObj = null;
 
-          if (box) {
-            box.classList.toggle('is-active', st.key === appState.activeStampKey);
-            box.classList.toggle('is-stamped', Boolean(hasVal));
+        for (var i = 0; i < total; i++) {
+          var item = appState.stampTargets[i];
+          var rowEl = document.getElementById('stamp-row-' + item.key);
+          var dotEl = document.getElementById('stamp-dot-' + item.key);
+          var inpEl = document.getElementById('ts-' + item.key);
+          var isDone = inpEl && inpEl.value !== '' && !isNaN(parseFloat(inpEl.value));
+          var isActive = item.key === appState.activeStampKey;
+
+          if (isDone) doneCount++;
+          if (isActive) activeObj = item;
+
+          if (rowEl) {
+            rowEl.classList.remove('stamp-row-active', 'stamp-row-done');
+            if (isActive) rowEl.classList.add('stamp-row-active');
+            else if (isDone) rowEl.classList.add('stamp-row-done');
+
+            if (isActive && scrollToActive) {
+              try {
+                rowEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              } catch (e) {}
+            }
+          }
+          if (dotEl) {
+            if (isDone) {
+              dotEl.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+            } else if (isActive) {
+              dotEl.className = 'w-2 h-2 rounded-full bg-sky-400 shrink-0';
+            } else {
+              dotEl.className = 'w-2 h-2 rounded-full bg-zinc-600 shrink-0';
+            }
           }
         }
 
-        var activeStep = steps[activeIdx];
-        var labelEl = document.getElementById('active-stamp-step-label');
-        var progEl = document.getElementById('active-stamp-progress');
-        var btnTextEl = document.getElementById('btn-quick-stamp-text');
-
-        if (labelEl) labelEl.textContent = '選択中: ' + activeStep.label;
-        if (progEl) progEl.textContent = stampedCount + ' / ' + steps.length + ' 完了';
-        if (btnTextEl) btnTextEl.textContent = activeStep.label + ' を打刻';
-      };
-
-      window.selectStampStep = function(fieldKey) {
-        appState.activeStampKey = fieldKey;
-        window.refreshStampVisualStates();
-      };
-
-      window.moveStampStep = function(delta) {
-        var steps = getOrderedStampSteps();
-        if (steps.length === 0) return;
-        var idx = steps.findIndex(function(s) { return s.key === appState.activeStampKey; });
-        if (idx === -1) idx = 0;
-        var nextIdx = (idx + delta + steps.length) % steps.length;
-        appState.activeStampKey = steps[nextIdx].key;
-        window.refreshStampVisualStates();
-
-        var box = document.getElementById('stamp-box-' + appState.activeStampKey);
-        if (box && box.scrollIntoView) {
-          box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        var activeLabelEl = document.getElementById('active-stamp-label');
+        if (activeLabelEl && activeObj) {
+          activeLabelEl.textContent = activeObj.label;
+        }
+        var progressBadge = document.getElementById('stamp-progress-badge');
+        if (progressBadge) {
+          progressBadge.textContent = doneCount + ' / ' + total + ' 完了';
         }
       };
 
-      window.stampActiveStep = function() {
-        var steps = getOrderedStampSteps();
-        if (steps.length === 0) return;
-        var idx = steps.findIndex(function(s) { return s.key === appState.activeStampKey; });
-        if (idx === -1) idx = 0;
-        window.stampTimestamp(steps[idx].key);
-      };
-
-      window.stampTimestamp = function(fieldKey) {
-        var inputEl = document.getElementById('ts-' + fieldKey);
-        if (!inputEl) return;
-
-        var sec = 0;
-        if (appState.mediaSource === 'youtube') {
-          sec = getCurrentStopwatchSec();
-        } else {
-          var video = document.getElementById('local-video-player');
-          sec = video ? (video.currentTime || 0) : 0;
-        }
-
-        inputEl.value = sec.toFixed(2);
+      window.onManualTimestampEdit = function() {
+        window.refreshStampChecklistUI(false);
         window.recalculateAllMetrics();
+      };
 
-        // 打刻後、自動的に次の未打刻項目（なければ直後の項目）へフォーカスを進める
-        var steps = getOrderedStampSteps();
-        var curIdx = steps.findIndex(function(s) { return s.key === fieldKey; });
-        var stampedLabel = curIdx !== -1 ? steps[curIdx].label : fieldKey;
+      window.stampTimestamp = function(key) {
+        var inp = document.getElementById('ts-' + key);
+        if (!inp) return;
+        var nowSec = getCurrentMediaTime();
+        inp.value = nowSec.toFixed(2);
+        appState.activeStampKey = key;
 
-        if (curIdx !== -1) {
-          var nextTargetKey = null;
-          for (var i = curIdx + 1; i < steps.length; i++) {
-            var nextInp = document.getElementById('ts-' + steps[i].key);
-            if (!nextInp || nextInp.value === '') {
-              nextTargetKey = steps[i].key;
+        // 自動で次の未打刻項目へ進む
+        var autoChk = document.getElementById('chk-auto-advance');
+        if (autoChk && autoChk.checked && appState.stampTargets.length > 0) {
+          var curIdx = -1;
+          for (var i = 0; i < appState.stampTargets.length; i++) {
+            if (appState.stampTargets[i].key === key) {
+              curIdx = i;
               break;
             }
           }
-          if (!nextTargetKey && curIdx + 1 < steps.length) {
-            nextTargetKey = steps[curIdx + 1].key;
+          // 後ろの未打刻項目を優先探索、なければ直後の項目へ
+          var nextTargetKey = null;
+          for (var j = curIdx + 1; j < appState.stampTargets.length; j++) {
+            var candKey = appState.stampTargets[j].key;
+            var candInp = document.getElementById('ts-' + candKey);
+            if (!candInp || candInp.value === '') {
+              nextTargetKey = candKey;
+              break;
+            }
+          }
+          if (!nextTargetKey && curIdx + 1 < appState.stampTargets.length) {
+            nextTargetKey = appState.stampTargets[curIdx + 1].key;
           }
           if (nextTargetKey) {
             appState.activeStampKey = nextTargetKey;
           }
         }
 
-        window.refreshStampVisualStates();
-        var activeBox = document.getElementById('stamp-box-' + appState.activeStampKey);
-        if (activeBox && activeBox.scrollIntoView) {
-          activeBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        window.showToast(stampedLabel + ': ' + sec.toFixed(2) + '秒 を打刻しました', 'success');
-      };
-
-      window.jumpToStamp = function(fieldKey) {
-        window.selectStampStep(fieldKey);
-        var inputEl = document.getElementById('ts-' + fieldKey);
-        if (!inputEl || inputEl.value === '') {
-          window.showToast('この項目はまだ打刻されていません', 'warning');
-          return;
-        }
-        var targetSec = parseFloat(inputEl.value);
-        if (isNaN(targetSec) || targetSec < 0) return;
-
-        if (appState.mediaSource === 'local') {
-          var video = document.getElementById('local-video-player');
-          if (!video || !video.src) {
-            window.showToast('ローカル動画が読み込まれていません', 'warning');
-            return;
-          }
-          video.pause();
-          var playBtn = document.getElementById('btn-play-pause');
-          if (playBtn) playBtn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
-          video.currentTime = targetSec;
-          updateLocalVideoTimeUI();
-          window.showToast(targetSec.toFixed(2) + '秒 のフレームへ移動しました', 'info');
-        } else {
-          window.showToast('記録時刻: ' + targetSec.toFixed(2) + '秒', 'info');
-        }
-      };
-
-      window.clearSingleStamp = function(fieldKey) {
-        var inputEl = document.getElementById('ts-' + fieldKey);
-        if (inputEl) {
-          inputEl.value = '';
-        }
-        appState.activeStampKey = fieldKey;
+        window.refreshStampChecklistUI(true);
         window.recalculateAllMetrics();
-        window.refreshStampVisualStates();
       };
 
-      window.clearAllTimestamps = function() {
-        var steps = getOrderedStampSteps();
-        for (var i = 0; i < steps.length; i++) {
-          var inp = document.getElementById('ts-' + steps[i].key);
-          if (inp) inp.value = '';
+      window.stampActiveTarget = function() {
+        if (!appState.activeStampKey && appState.stampTargets.length > 0) {
+          appState.activeStampKey = appState.stampTargets[0].key;
         }
-        appState.activeStampKey = steps.length > 0 ? steps[0].key : 'startGun';
-        window.recalculateAllMetrics();
-        window.refreshStampVisualStates();
-        window.showToast('全打刻タイムをクリアしました', 'info');
-      };
-
-      window.stampTimestamp = function(fieldKey) {
-        var inputEl = document.getElementById('ts-' + fieldKey);
-        if (!inputEl) return;
-
-        var sec = 0;
-        if (appState.mediaSource === 'youtube') {
-          sec = getCurrentStopwatchSec();
-        } else {
-          var video = document.getElementById('local-video-player');
-          sec = video ? (video.currentTime || 0) : 0;
+        if (appState.activeStampKey) {
+          window.stampTimestamp(appState.activeStampKey);
         }
-
-        inputEl.value = sec.toFixed(2);
-        window.recalculateAllMetrics();
-        window.showToast('打刻しました: ' + sec.toFixed(2) + '秒', 'info');
       };
 
       function ensureDistanceOption(distVal) {
@@ -1997,7 +1876,7 @@
         }
       }
 
-      // 距離・ラップ情報から構造化ラップ表（laps, 25m split, 50m split, 100m split）を構築・補完する
+      // 構造化ラップ表正規化
       function normalizeLapTableFromRows(rawRows, totalDistance) {
         if (!Array.isArray(rawRows) || rawRows.length === 0) return [];
         var sorted = rawRows.slice().sort(function(a, b) {
@@ -2019,7 +1898,6 @@
             ? String(row.split50).trim()
             : '';
 
-          // 50mの倍数行でsplit50が空欄の場合、50m前のlapsから自動算出
           if (!sp50 && d % 50 === 0 && !isNaN(cumSec)) {
             if (d === 50) {
               sp50 = cumSec.toFixed(2);
@@ -2066,13 +1944,11 @@
         return result;
       }
 
-      // ラップ表HTMLとサマリー指標を生成する共通レンダラー
       function buildOfficialLapCardHtml(raceObj) {
         var lapTable = Array.isArray(raceObj.lapTable) && raceObj.lapTable.length > 0
           ? normalizeLapTableFromRows(raceObj.lapTable, raceObj.distance)
           : [];
 
-        // lapTableが空でもofficialLapsがある場合は変換して表示
         if (lapTable.length === 0 && Array.isArray(raceObj.officialLaps) && raceObj.officialLaps.length > 0) {
           var cum = 0;
           var tempRows = [];
@@ -2094,7 +1970,6 @@
           lapTable = normalizeLapTableFromRows(tempRows, raceObj.distance);
         }
 
-        // 25m splitの最速・最遅特定
         var min25 = Infinity;
         var max25 = -Infinity;
         for (var j = 0; j < lapTable.length; j++) {
@@ -2105,7 +1980,6 @@
           }
         }
 
-        // 50m splitリスト抽出（前半50m vs 後半50m比較用）
         var splits50List = [];
         for (var k = 0; k < lapTable.length; k++) {
           if (Number(lapTable[k].dist) % 50 === 0 && lapTable[k].split50) {
@@ -2152,7 +2026,7 @@
 
         var tableHtml = '';
         if (lapTable.length === 0) {
-          tableHtml = '<div class="p-6 text-center text-xs text-zinc-500">公式ラップデータがありません（CSV読込または左上の公式ラップ入力欄から登録できます）</div>';
+          tableHtml = '<div class="p-6 text-center text-xs text-zinc-500">公式ラップデータがありません（CSV読込または上の公式ラップ入力欄から登録できます）</div>';
         } else {
           var rowsHtml = '';
           for (var r = 0; r < lapTable.length; r++) {
@@ -2197,15 +2071,12 @@
         };
       }
 
-      // 50m別 純粋スイム統合分析カード（CSV 50m split × 動画スタート15m・ターン区間）のHTML生成
       function buildPureSwimLegsHtml(raceObj, splits50List) {
         var totalDist = Number(raceObj.distance) || 100;
         var numLegs = Math.max(1, Math.floor(totalDist / 50));
         var m = raceObj.metrics || {};
-        var turnsList = Array.isArray(m.turns) ? m.turns : [];
-
-        // 動画RT（入水 - 号砲）と公式RT比較
         var ts = raceObj.timestamps || {};
+
         var videoEntryDur = (ts.startGun !== null && ts.startGun !== undefined && ts.startEntry !== null && ts.startEntry !== undefined)
           ? Number((ts.startEntry - ts.startGun).toFixed(2))
           : null;
@@ -2217,7 +2088,7 @@
             : '';
           rtCompareHtml = '<div class="bg-black/60 p-2.5 rounded-xl border border-borderDark text-[11px] text-zinc-300 flex flex-wrap items-center justify-between gap-1">' +
             '<span>公式RT: <strong class="text-sky-400 font-mono">' + offRt.toFixed(2) + 's</strong>' + flightTimeHtml + '</span>' +
-            (videoEntryDur !== null ? '<span class="text-zinc-400 font-mono">入水時刻: ' + videoEntryDur.toFixed(2) + 's</span>' : '') +
+            (videoEntryDur !== null ? '<span class="text-zinc-400 font-mono">入水時間: ' + videoEntryDur.toFixed(2) + 's</span>' : '') +
             '</div>';
         }
 
@@ -2233,10 +2104,6 @@
           var sp50Obj = splits50List.find(function(x) { return x.dist === endM; });
           var legSplitSec = sp50Obj && !isNaN(sp50Obj.valSec) ? sp50Obj.valSec : null;
 
-          // 各50mレッグから差し引く水中・ターン区間距離と時間
-          // 第1レッグ(0-50m): スタート15m + (次ターンがあれば壁前5m分)
-          // 最終レッグ: 前ターンの壁後15m分
-          // 中間レッグ: 前ターン壁後15m + 次ターン壁前5m
           var deductedDist = 0;
           var deductedTime = 0;
           var hasAllVideoMarks = true;
@@ -2369,7 +2236,6 @@
           });
         }
 
-        // currentLapTable と入力欄の同期
         var mergedLapRows = [];
         if (Array.isArray(appState.currentLapTable) && appState.currentLapTable.length > 0) {
           mergedLapRows = appState.currentLapTable.map(function(row) {
@@ -2411,7 +2277,6 @@
         }
         var normalizedLapTable = normalizeLapTableFromRows(mergedLapRows, distance);
 
-        // 指標計算
         var gunBase = startGun !== null ? startGun : 0;
         var calcStart15m = start15m !== null ? Number((start15m - gunBase).toFixed(2)) : null;
         var calcStartBreakout = startBreakout !== null ? Number((startBreakout - gunBase).toFixed(2)) : null;
@@ -2441,13 +2306,11 @@
           });
         }
 
-        // 全体タイム決定（公式タイム優先、なければゴール打刻-号砲）
         var totalRaceSec = parseTimeStringToSeconds(officialTimeStr);
         if (isNaN(totalRaceSec) && finish !== null) {
           totalRaceSec = Number((finish - gunBase).toFixed(2));
         }
 
-        // 純粋スイム距離 = 総距離 - 15m(スタート) - 20m * ターン数
         var cleanSwimDist = Math.max(0, distance - 15 - (20 * turnDists.length));
         var cleanSwimTime = null;
         var cleanSwimSpeed = null;
@@ -2464,7 +2327,6 @@
           }
         }
 
-        // YouTubeリンク情報（入力欄 + 保護情報）
         var ytInputEl = document.getElementById('yt-url-input');
         var ytStartEl = document.getElementById('yt-start-input');
         var rawYt = ytInputEl ? ytInputEl.value.trim() : '';
@@ -2547,7 +2409,6 @@
         if (elCleanDist) elCleanDist.textContent = '対象距離: ' + m.cleanSwimDist + 'm';
         if (elCleanSpd) elCleanSpd.textContent = m.cleanSwimSpeed !== null ? m.cleanSwimSpeed.toFixed(2) : '--.--';
 
-        // 公式リザルト＆ラップ詳細カード＋50m別純粋スイム統合カード描画
         var lapCardData = buildOfficialLapCardHtml(data);
         var lapSumEl = document.getElementById('analyzer-lap-summary-cards');
         var lapTblEl = document.getElementById('analyzer-lap-table-wrapper');
@@ -2565,7 +2426,6 @@
           pureLegsEl.innerHTML = buildPureSwimLegsHtml(data, lapCardData.splits50List);
         }
 
-        // 詳細テーブル描画
         var tbody = document.getElementById('breakdown-table-body');
         if (tbody) {
           var rows = '';
@@ -2635,7 +2495,6 @@
         if (currentVal) {
           select.value = currentVal;
         } else if (matched.length > 0) {
-          // 同じ選手がいれば優先自動選択
           var sameSwimmer = matched.find(function(x) { return x.swimmerName === swimmer; });
           select.value = sameSwimmer ? sameSwimmer.id : matched[0].id;
         }
@@ -2658,7 +2517,6 @@
           }
         }
 
-        // 上段（左）: 区間タイム比較（スタート15m / ターン20m合計 / 純粋スイム時間）
         var items1 = [
           {
             label: 'スタート 15m',
@@ -2682,7 +2540,6 @@
 
         stage1.innerHTML = buildHorizontalCompareBars(items1, 'bg-sky-400', true);
 
-        // 下段（右）: 水中動作指標比較（スタート浮上時間 / スタートキック数 / 第1ターンキック数）
         var kickShort = getKickShortTermByStyle(current.style);
         var curTurn1Kick = current.metrics.turns && current.metrics.turns[0] ? current.metrics.turns[0].kicks : null;
         var refTurn1Kick = target && target.metrics && target.metrics.turns && target.metrics.turns[0] ? target.metrics.turns[0].kicks : null;
@@ -2753,12 +2610,11 @@
         return html;
       }
 
-      // ==================== 7. レースデータの保存（YouTubeリンク保護ロジック含む） ====================
+      // ==================== 7. レースデータの保存 ====================
       window.saveCurrentRace = function() {
         var formData = collectCurrentFormData();
         var races = getSavedRaces();
 
-        // 上書き対象の特定（loadedRaceId優先、なければ選手名・日付・種目・距離・大会名一致）
         var targetIndex = -1;
         if (appState.loadedRaceId) {
           for (var i = 0; i < races.length; i++) {
@@ -2782,7 +2638,6 @@
           }
         }
 
-        // YouTubeリンク保護ロジック：今回URLが空であっても既存データや保持情報にURLがあれば消さずに保護
         var existingRace = targetIndex !== -1 ? races[targetIndex] : null;
         if (!formData.youtubeUrl && !formData.youtubeVideoId) {
           if (existingRace && (existingRace.youtubeUrl || existingRace.youtubeVideoId)) {
@@ -2802,7 +2657,7 @@
 
         if (targetIndex !== -1) {
           races[targetIndex] = formData;
-          window.showToast('既存レースデータを上書き保存しました（YouTubeリンク保護済）', 'success');
+          window.showToast('既存レースデータを上書き保存しました', 'success');
         } else {
           races.unshift(formData);
           window.showToast('新しいレース分析データを保存しました', 'success');
@@ -2820,16 +2675,13 @@
         appState.loadedRaceId = null;
         appState.preservedYoutube = { url: '', videoId: '', startSec: 0 };
         appState.currentLapTable = [];
+        appState.activeStampKey = 'startGun';
         var editBadge = document.getElementById('editing-badge');
         if (editBadge) editBadge.style.display = 'none';
 
         document.getElementById('input-official-time').value = '';
         document.getElementById('input-reaction-time').value = '';
         document.getElementById('input-race-notes').value = '';
-        document.getElementById('ts-startGun').value = '';
-        document.getElementById('ts-startEntry').value = '';
-        document.getElementById('ts-startBreakout').value = '';
-        document.getElementById('ts-start15m').value = '';
         document.getElementById('input-start-kicks').value = '';
         document.getElementById('input-start-breakout-dist').value = '';
 
@@ -2839,7 +2691,7 @@
         window.showToast('分析フォームを新規リセットしました', 'info');
       };
 
-      // ==================== 8. 保存データの分析画面への再読込（YouTube・ラップ自動復元） ====================
+      // ==================== 8. 保存データの分析画面への再読込 ====================
       window.loadRaceIntoAnalyzer = function(raceId) {
         var races = getSavedRaces();
         var target = null;
@@ -2859,7 +2711,6 @@
         var editBadge = document.getElementById('editing-badge');
         if (editBadge) editBadge.style.display = 'inline-block';
 
-        // 基本情報復元
         ensureDistanceOption(target.distance || 100);
         document.getElementById('input-swimmer-name').value = target.swimmerName || '';
         document.getElementById('input-race-date').value = target.date || '';
@@ -2870,27 +2721,14 @@
         document.getElementById('input-reaction-time').value = target.reactionTime || '';
         document.getElementById('input-race-notes').value = target.notes || '';
 
-        // スタート打刻復元
-        var ts = target.timestamps || {};
-        document.getElementById('ts-startGun').value = ts.startGun !== null && ts.startGun !== undefined ? ts.startGun : '';
-        document.getElementById('ts-startEntry').value = ts.startEntry !== null && ts.startEntry !== undefined ? ts.startEntry : '';
-        document.getElementById('ts-startBreakout').value = ts.startBreakout !== null && ts.startBreakout !== undefined ? ts.startBreakout : '';
-        document.getElementById('ts-start15m').value = ts.start15m !== null && ts.start15m !== undefined ? ts.start15m : '';
-
         var kc = target.kickCounts || {};
         document.getElementById('input-start-kicks').value = kc.start !== null && kc.start !== undefined ? kc.start : '';
         document.getElementById('input-start-breakout-dist').value = target.startBreakoutDist !== null && target.startBreakoutDist !== undefined ? target.startBreakoutDist : '';
 
-        // ターン・ラップ動的フォーム再構築＆復元
         window.onStyleOrDistanceChange(target);
-
-        // モーダルが開いていれば閉じる
         window.closeLoadModal();
-
-        // 分析画面へ遷移
         window.showScreen('screen-analyze');
 
-        // YouTubeリンクの自動復元処理
         var savedYtUrl = target.youtubeUrl || '';
         var savedYtId = target.youtubeVideoId || '';
         var savedYtStart = target.youtubeStartSec || 0;
@@ -2955,21 +2793,44 @@
         if (modal) modal.style.display = 'none';
       };
 
-      // ==================== 9. 4階層データブラウザ（「分析したレースを見る」） ====================
+      // ==================== 9. 4階層データブラウザ（階層4で動画を即座にプレビュー表示） ====================
       window.setHistoryLevel = function(level, swimmer, eventKey, raceId) {
         appState.historyLevel = level;
         if (swimmer !== undefined) appState.selectedSwimmer = swimmer;
         if (eventKey !== undefined) appState.selectedEventKey = eventKey;
         if (raceId !== undefined) appState.selectedRaceId = raceId;
-        appState.detailPreviewOpen = false;
         window.renderHistoryBrowser();
       };
 
       window.historyStepBack = function() {
         if (appState.historyLevel > 1) {
           appState.historyLevel -= 1;
-          appState.detailPreviewOpen = false;
           window.renderHistoryBrowser();
+        }
+      };
+
+      // 詳細画面の即時プレビューYouTubeプレイヤーを指定秒数へシーク
+      window.seekDetailYouTube = function(sec, label) {
+        var iframe = document.getElementById('detail-yt-iframe');
+        if (!iframe) return;
+        var seekSec = Math.max(0, Math.floor(Number(sec) || 0));
+        try {
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: 'seekTo',
+            args: [Number(sec), true]
+          }), '*');
+          iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: 'playVideo',
+            args: []
+          }), '*');
+          window.showToast((label || '') + ' (' + Number(sec).toFixed(2) + '秒) へジャンプしました', 'info');
+        } catch (e) {
+          var baseSrc = iframe.getAttribute('data-base-src');
+          if (baseSrc) {
+            iframe.src = baseSrc + '&start=' + seekSec + '&autoplay=1';
+          }
         }
       };
 
@@ -2981,12 +2842,10 @@
 
         var races = getSavedRaces();
 
-        // 戻るボタン表示制御
         if (backBtn) {
           backBtn.style.display = appState.historyLevel > 1 ? 'inline-flex' : 'none';
         }
 
-        // パンくず構築
         var bcHtml = '<button type="button" onclick="window.setHistoryLevel(1)" class="text-sky-400 hover:underline cursor-pointer">全選手一覧</button>';
         if (appState.historyLevel >= 2 && appState.selectedSwimmer) {
           bcHtml += ' <span class="text-zinc-600">/</span> <button type="button" onclick="window.setHistoryLevel(2, \'' + escapeHtml(appState.selectedSwimmer) + '\')" class="text-sky-400 hover:underline cursor-pointer">' + escapeHtml(appState.selectedSwimmer) + '</button>';
@@ -3017,11 +2876,10 @@
             var r = races[i];
             var name = r.swimmerName || '未設定選手';
             if (!swimmerMap[name]) {
-              swimmerMap[name] = { count: 0, latestDate: r.date, ytCount: 0 };
+              swimmerMap[name] = { count: 0, latestDate: r.date };
             }
             swimmerMap[name].count++;
             if (r.date > swimmerMap[name].latestDate) swimmerMap[name].latestDate = r.date;
-            if (r.youtubeVideoId || r.youtubeUrl) swimmerMap[name].ytCount++;
           }
 
           var names = Object.keys(swimmerMap);
@@ -3127,7 +2985,7 @@
           return;
         }
 
-        // 【階層4】分析結果詳細（YouTube URL表示・コピー・その場プレビュー・動画付き再読込）
+        // 【階層4】分析結果詳細（開いた瞬間にYouTube動画を即座にプレビュー表示！）
         if (appState.historyLevel === 4) {
           var detail = null;
           for (var p = 0; p < races.length; p++) {
@@ -3152,27 +3010,62 @@
             var parsedYt = window.parseYouTubeUrl(displayUrl);
             var vidId = detail.youtubeVideoId || parsedYt.videoId;
             var stSec = detail.youtubeStartSec || parsedYt.startSec || 0;
-            var previewBlock = appState.detailPreviewOpen && vidId
-              ? '<div class="w-full aspect-video rounded-xl overflow-hidden border border-borderDark bg-black mt-3">' + buildYouTubeEmbedHtml(vidId, stSec) + '</div>'
-              : '';
+            var baseEmbedUrl = 'https://www.youtube.com/embed/' + encodeURIComponent(vidId) + '?rel=0&playsinline=1&enablejsapi=1';
+            var initialEmbedUrl = baseEmbedUrl + (stSec > 0 ? '&start=' + Math.floor(stSec) : '');
 
-            ytSectionHtml = '<div class="bg-black/70 p-4 rounded-2xl border border-red-500/30 flex flex-col gap-2.5">' +
+            // 打刻済みポイントへのクイックジャンプボタン群を構築
+            var jumpBtnsHtml = '';
+            var dTs = detail.timestamps || {};
+            var jumpPoints = [];
+            if (dTs.startGun !== null && dTs.startGun !== undefined) jumpPoints.push({ label: '号砲', sec: dTs.startGun });
+            if (dTs.startBreakout !== null && dTs.startBreakout !== undefined) jumpPoints.push({ label: 'スタート浮上', sec: dTs.startBreakout });
+            if (dTs.start15m !== null && dTs.start15m !== undefined) jumpPoints.push({ label: '15m通過', sec: dTs.start15m });
+            if (dTs.turns) {
+              var tDistKeys = Object.keys(dTs.turns).sort(function(a, b) { return Number(a) - Number(b); });
+              for (var jk = 0; jk < tDistKeys.length; jk++) {
+                var tdKey = tDistKeys[jk];
+                var tItem = dTs.turns[tdKey];
+                if (tItem && tItem.in5m !== null && tItem.in5m !== undefined) {
+                  jumpPoints.push({ label: tdKey + 'mターン進入', sec: tItem.in5m });
+                } else if (tItem && tItem.touch !== null && tItem.touch !== undefined) {
+                  jumpPoints.push({ label: tdKey + 'mターンタッチ', sec: tItem.touch });
+                }
+              }
+            }
+            if (dTs.finish !== null && dTs.finish !== undefined) jumpPoints.push({ label: 'ゴール', sec: dTs.finish });
+
+            if (jumpPoints.length > 0) {
+              jumpBtnsHtml = '<div class="flex flex-wrap items-center gap-1.5 pt-1">' +
+                '<span class="text-[11px] font-semibold text-zinc-400 mr-1"><i class="fa-solid fa-forward-fast text-sky-400 mr-1"></i>シーンジャンプ:</span>';
+              for (var jp = 0; jp < jumpPoints.length; jp++) {
+                var pt = jumpPoints[jp];
+                jumpBtnsHtml += '<button type="button" onclick="window.seekDetailYouTube(' + Number(pt.sec) + ', \'' + escapeHtml(pt.label) + '\')" ' +
+                  'class="pill-btn px-2.5 py-1 bg-surface hover:bg-surfaceHover border border-borderDark text-[11px] font-semibold text-zinc-200 cursor-pointer">' +
+                  escapeHtml(pt.label) + ' <span class="font-mono text-sky-400">' + Number(pt.sec).toFixed(2) + 's</span>' +
+                  '</button>';
+              }
+              jumpBtnsHtml += '</div>';
+            }
+
+            // ボタンを押さなくても最初から即座に16:9 YouTubeプレイヤーを描画！
+            ytSectionHtml = '<div class="bg-black/75 p-4 rounded-2xl border border-red-500/35 flex flex-col gap-3">' +
               '<div class="flex flex-wrap items-center justify-between gap-2">' +
-              '<span class="text-xs font-bold text-red-400 flex items-center gap-1.5"><i class="fa-brands fa-youtube text-base"></i>保存済み YouTube レース映像</span>' +
+              '<span class="text-xs sm:text-sm font-bold text-red-400 flex items-center gap-1.5"><i class="fa-brands fa-youtube text-lg"></i>レース映像 プレビュー</span>' +
               '<div class="flex flex-wrap items-center gap-2">' +
-              '<button type="button" onclick="window.copySavedYouTubeUrl(\'' + escapeHtml(displayUrl) + '\')" class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-200 cursor-pointer"><i class="fa-regular fa-copy mr-1"></i>URLをコピー</button>' +
-              '<button type="button" onclick="window.toggleDetailYouTubePreview()" class="pill-btn px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs cursor-pointer"><i class="fa-solid fa-play mr-1"></i>' + (appState.detailPreviewOpen ? 'プレビューを閉じる' : 'その場で再生プレビュー') + '</button>' +
+              '<button type="button" onclick="window.copySavedYouTubeUrl(\'' + escapeHtml(displayUrl) + '\')" class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-200 cursor-pointer"><i class="fa-regular fa-copy mr-1"></i>URLコピー</button>' +
+              '<a href="' + escapeHtml(displayUrl) + '" target="_blank" rel="noopener noreferrer" class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-200 inline-flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>YouTubeで開く</a>' +
               '</div></div>' +
-              '<div class="text-xs font-mono text-zinc-300 bg-surface px-3 py-2 rounded-xl border border-borderDark truncate">' + escapeHtml(displayUrl) + ' (開始: ' + stSec + '秒)</div>' +
-              previewBlock +
+              '<div class="w-full aspect-video max-h-[520px] rounded-xl overflow-hidden border border-borderDark bg-black shadow-xl">' +
+              '<iframe id="detail-yt-iframe" data-base-src="' + escapeHtml(baseEmbedUrl) + '" class="w-full h-full border-0" src="' + escapeHtml(initialEmbedUrl) + '" title="YouTube race video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>' +
+              '</div>' +
+              jumpBtnsHtml +
               '</div>';
           } else {
             ytSectionHtml = '<div class="bg-black/50 p-3.5 rounded-2xl border border-borderDark text-xs text-zinc-500 flex items-center justify-between">' +
-              '<span><i class="fa-brands fa-youtube mr-1.5"></i>このレースにはYouTubeリンクが紐付けられていません</span>' +
+              '<span><i class="fa-brands fa-youtube mr-1.5"></i>このレースにはYouTubeリンクが紐付けられていません（分析画面でURLを登録できます）</span>' +
               '</div>';
           }
 
-          // ターン詳細行
           var turnRowsHtml = '';
           if (Array.isArray(dm.turns)) {
             for (var tIdx = 0; tIdx < dm.turns.length; tIdx++) {
@@ -3186,13 +3079,10 @@
             }
           }
 
-          // 公式ラップ行
-          // 公式リザルト＆ラップ詳細＋50m別純粋スイム統合分析
           var detailLapCard = buildOfficialLapCardHtml(detail);
           var detailPureLegsHtml = buildPureSwimLegsHtml(detail, detailLapCard.splits50List);
 
           var html4 = '<div class="apple-card p-5 sm:p-6 flex flex-col gap-5">' +
-            '<!-- ヘッダー＆アクションボタン -->' +
             '<div class="flex flex-wrap items-start justify-between gap-4 border-b border-borderDark pb-4">' +
             '<div>' +
             '<div class="flex items-center gap-2 text-xs text-sky-400 font-bold mb-1">' +
@@ -3210,10 +3100,8 @@
             '</button>' +
             '</div></div>' +
 
-            '<!-- YouTubeセクション -->' +
             ytSectionHtml +
 
-            '<!-- 主要KPI 4つ -->' +
             '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">' +
             '<div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark"><div class="text-[11px] text-zinc-400">スタート 15m</div><div class="text-xl font-extrabold font-mono text-sky-400 mt-1">' + formatSec(dm.start15m) + 's</div></div>' +
             '<div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark"><div class="text-[11px] text-zinc-400">ターン20m 合計</div><div class="text-xl font-extrabold font-mono text-purple-400 mt-1">' + formatSec(dm.totalTurn20m) + 's</div></div>' +
@@ -3221,20 +3109,17 @@
             '<div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark"><div class="text-[11px] text-zinc-400">純粋スイム速度</div><div class="text-xl font-extrabold font-mono text-amber-400 mt-1">' + formatSec(dm.cleanSwimSpeed) + ' m/s</div></div>' +
             '</div>' +
 
-            '<!-- 公式リザルト＆ラップ詳細 -->' +
             '<div class="bg-black/40 p-4 rounded-2xl border border-borderDark flex flex-col gap-3">' +
             '<div class="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><i class="fa-solid fa-stopwatch-20"></i>公式リザルト＆ラップ詳細</div>' +
             '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">' + detailLapCard.summaryHtml + '</div>' +
             '<div class="bg-black/60 rounded-xl border border-borderDark overflow-x-auto">' + detailLapCard.tableHtml + '</div>' +
             '</div>' +
 
-            '<!-- 50m別 純粋スイム統合分析 -->' +
             '<div class="bg-black/40 p-4 rounded-2xl border border-borderDark flex flex-col gap-2.5">' +
             '<div class="text-xs font-bold text-sky-400 flex items-center gap-1.5"><i class="fa-solid fa-layer-group"></i>50m別 純粋スイム統合分析</div>' +
             '<div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">' + detailPureLegsHtml + '</div>' +
             '</div>' +
 
-            '<!-- 局面詳細テーブル -->' +
             '<div class="bg-black/60 rounded-2xl border border-borderDark overflow-x-auto">' +
             '<table class="w-full text-left border-collapse text-xs">' +
             '<thead><tr class="bg-surface/60 text-zinc-400"><th class="py-2.5 px-3">局面</th><th class="py-2.5 px-3">区間タイム</th><th class="py-2.5 px-3">浮き上がり</th><th class="py-2.5 px-3">' + escapeHtml(kickShort) + '</th></tr></thead>' +
@@ -3243,7 +3128,6 @@
             turnRowsHtml +
             '</tbody></table></div>' +
 
-            '<!-- メモ -->' +
             (detail.notes ? '<div class="bg-black/60 p-3.5 rounded-xl border border-borderDark text-xs text-zinc-300"><span class="text-zinc-500 font-bold block mb-1">分析メモ:</span>' + escapeHtml(detail.notes) + '</div>' : '') +
             '</div>';
 
@@ -3266,11 +3150,6 @@
           window.showToast('コピーに失敗しました', 'error');
         }
         document.body.removeChild(tempInput);
-      };
-
-      window.toggleDetailYouTubePreview = function() {
-        appState.detailPreviewOpen = !appState.detailPreviewOpen;
-        window.renderHistoryBrowser();
       };
 
       window.promptDeleteRace = function(raceId) {
@@ -3303,7 +3182,6 @@
         return 'Fr';
       }
 
-      // カンマ/タブ＆ダブルクォーテーション対応1行スプリッタ
       function splitCsvRow(line, delimiter) {
         var out = [];
         var cur = '';
@@ -3328,7 +3206,6 @@
         return out;
       }
 
-      // 添付スクリーンショット形式（水野 吉晴_100m_バタフライ / name,date,distance,style,event / ,laps,25m split,50m split,100m split）専用パーサー
       function tryParseStrokeAnalyzerSplitCsv(rawLines, delimiter) {
         var headerRowIdx = -1;
         var colMap = { name: -1, date: -1, distance: -1, style: -1, event: -1 };
@@ -3353,7 +3230,6 @@
           return null;
         }
 
-        // 先頭タイトル行（例: "水野 吉晴_100m_バタフライ"）からのフォールバック抽出
         var titleFallback = { name: '', distance: NaN, style: '' };
         if (headerRowIdx > 0) {
           var firstRowCells = splitCsvRow(rawLines[0], delimiter);
@@ -3375,7 +3251,6 @@
         var style = (colMap.style !== -1 && valCols[colMap.style]) ? normalizeStyleCode(valCols[colMap.style]) : (titleFallback.style || 'Fr');
         var meetName = (colMap.event !== -1 && valCols[colMap.event]) ? valCols[colMap.event] : '記録会';
 
-        // ラップヘッダー行（,laps,25m split,50m split,100m split）の探索
         var lapHeaderIdx = -1;
         var lapColMap = { laps: 1, split25: 2, split50: 3, split100: 4, strokes: -1 };
         for (var j = headerRowIdx + 2; j < rawLines.length; j++) {
@@ -3440,7 +3315,6 @@
           officialTime = normalizedTable[normalizedTable.length - 1].laps;
         }
 
-        // フォーム入力欄用のofficialLaps（50m種目は25m/50m、100m以上は50m刻み）
         var formLaps = [];
         for (var m = 0; m < normalizedTable.length; m++) {
           var rowItem = normalizedTable[m];
@@ -3509,7 +3383,6 @@
               text = new TextDecoder('utf-8').decode(buffer);
             }
           }
-          // BOM除去
           if (text.charCodeAt(0) === 0xFEFF) {
             text = text.slice(1);
           }
@@ -3542,7 +3415,6 @@
 
         if (rawLines.length === 0) return [];
 
-        // 区切り文字自動判別（タブ vs カンマ）
         var sampleText = rawLines.slice(0, 6).join(' ');
         var tabCount = (sampleText.match(/\t/g) || []).length;
         var commaCount = (sampleText.match(/,/g) || []).length;
@@ -3551,7 +3423,6 @@
         var races = getSavedRaces();
         var importedList = [];
 
-        // 1. スクリーンショット形式（横並びメタデータ + laps/25m split/50m split/100m split）の優先パース
         var structuredRace = tryParseStrokeAnalyzerSplitCsv(rawLines, delimiter);
         if (structuredRace) {
           races.unshift(structuredRace);
@@ -3559,7 +3430,6 @@
           return [structuredRace];
         }
 
-        // 2. 縦並びキーバリュー形式のフォールバック
         var isVerticalFormat = false;
         for (var i = 0; i < Math.min(rawLines.length, 15); i++) {
           var low = rawLines[i].trim().toLowerCase();
@@ -3645,7 +3515,6 @@
             }
           }
         } else {
-          // 3. 汎用CSV形式（1行目ヘッダー、2行目以降データ）
           var headers = splitCsvRow(rawLines[0], delimiter).map(function(h) { return h.toLowerCase(); });
           for (var rIdx = 1; rIdx < rawLines.length; rIdx++) {
             var rowCols = splitCsvRow(rawLines[rIdx], delimiter);
@@ -3769,18 +3638,43 @@
         reader.readAsText(file, 'UTF-8');
       };
 
-      // ==================== 11. DOMContentLoaded 初期化 ====================
+      // ==================== 11. キーボードショートカット & 初期化 ====================
+      function initKeyboardShortcuts() {
+        document.addEventListener('keydown', function(e) {
+          if (appState.currentScreen !== 'screen-analyze') return;
+          var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+          if (e.code === 'Space') {
+            e.preventDefault();
+            window.togglePlayPause();
+          } else if (e.code === 'ArrowLeft') {
+            e.preventDefault();
+            window.stepFrame(e.shiftKey ? -5 : -1);
+          } else if (e.code === 'ArrowRight') {
+            e.preventDefault();
+            window.stepFrame(e.shiftKey ? 5 : 1);
+          } else if (e.code === 'Enter') {
+            e.preventDefault();
+            window.stampActiveTarget();
+          } else if (e.code === 'ArrowUp') {
+            e.preventDefault();
+            window.moveActiveTarget(-1);
+          } else if (e.code === 'ArrowDown') {
+            e.preventDefault();
+            window.moveActiveTarget(1);
+          }
+        });
+      }
+
       document.addEventListener('DOMContentLoaded', function() {
-        // 今日の日付をデフォルトセット
         var dateInput = document.getElementById('input-race-date');
         if (dateInput && !dateInput.value) {
           dateInput.value = new Date().toISOString().slice(0, 10);
         }
 
-        // 初期サンプルデータ準備＆件数更新
         seedInitialSampleDataIfEmpty();
 
-        // ボタンのイベントリスナー二重保証
         var btnAnalyze = document.getElementById('btn-go-analyze');
         if (btnAnalyze) {
           btnAnalyze.addEventListener('click', function() {
@@ -3794,44 +3688,11 @@
           });
         }
 
-        // 初期フォーム＆ビューポート初期化
         window.onStyleOrDistanceChange();
         initViewportInteractions();
+        initKeyboardShortcuts();
         window.refreshCompareRaceDropdown();
         window.renderComparisonCharts();
-
-        // PC向けキーボードショートカット（分析画面表示中かつ入力欄フォーカス外）
-        document.addEventListener('keydown', function(e) {
-          if (appState.currentScreen !== 'screen-analyze') return;
-          var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-          if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-
-          var loadModal = document.getElementById('modal-load-race');
-          var delModal = document.getElementById('modal-confirm-delete');
-          if ((loadModal && loadModal.style.display === 'flex') || (delModal && delModal.style.display === 'flex')) {
-            return;
-          }
-
-          if (e.code === 'Space') {
-            e.preventDefault();
-            window.togglePlayPause();
-          } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            window.stepFrame(e.shiftKey ? -5 : -1);
-          } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            window.stepFrame(e.shiftKey ? 5 : 1);
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            window.stampActiveStep();
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            window.moveStampStep(-1);
-          } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            window.moveStampStep(1);
-          }
-        });
       });
     })();
   </script>
