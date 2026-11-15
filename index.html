@@ -1139,6 +1139,51 @@
       font-weight: 600;
     }
 
+    /* CSV詳細ラップ一覧テーブル（25m通過 / 25m split / 50m split / 100m split） */
+    .csv-detail-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 8px;
+    }
+
+    .csv-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      text-align: center;
+    }
+
+    .csv-detail-table th {
+      background-color: rgba(6, 12, 24, 0.7);
+      color: var(--text-secondary);
+      font-weight: 700;
+      padding: 5px 8px;
+      border: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .csv-detail-table td {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 5px 8px;
+      border: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .csv-detail-table td.dist-col {
+      background-color: rgba(19, 32, 59, 0.8);
+      color: var(--accent-aqua-light);
+      font-weight: 800;
+    }
+
+    .csv-detail-table td.split50-col {
+      color: #34d399;
+    }
+
     /* 分析カードグリッド */
     .cards-grid {
       display: grid;
@@ -1590,6 +1635,11 @@
       </div>
 
       <div class="field-pill">
+        <label for="raceDateInput">開催日</label>
+        <input type="text" id="raceDateInput" class="num" value="2026/11/15" placeholder="2026/11/15" style="width:92px;" />
+      </div>
+
+      <div class="field-pill">
         <label for="strokeSelect">種目</label>
         <select id="strokeSelect">
           <option value="Fr" selected>自由形 (Fr)</option>
@@ -1623,6 +1673,7 @@
       <div class="field-pill">
         <label for="fpsSelect">FPS</label>
         <select id="fpsSelect" class="num">
+          <option value="120">120fps</option>
           <option value="60" selected>60fps</option>
           <option value="30">30fps</option>
         </select>
@@ -1906,12 +1957,14 @@
          ---------------------------------------------------------------------- */
       const state = {
         meetName: '2026/11/15 秋季記録会',
+        raceDate: '2026/11/15',
         athleteName: '山田 太郎',
         stroke: 'Fr',          // 'Fr' | 'Ba' | 'Br' | 'Fly' | 'IM'
         distance: 100,         // 50 | 100 | 200 | 400
         officialTime: '50.12',
         officialRt: '0.63',
         officialLaps: [24.10, 26.02],
+        officialLapDetails: [], // [{ dist: 25, lapCum: 11.62, split25: 11.62, split50: null, split100: null }, ...]
         fps: 60,
         turnEndMode: '15m',    // '15m' | 'breakout'
 
@@ -1981,7 +2034,7 @@
         const ids = [
           'csvFileInput', 'btnImportCsv', 'btnOpenCsvModal', 'csvCountBadge',
           'btnExportSampleCsv', 'btnLoadDemo', 'btnSaveAnalysis', 'btnManageSaved',
-          'athleteNameInput', 'meetNameInput', 'strokeSelect', 'distanceSelect',
+          'athleteNameInput', 'meetNameInput', 'raceDateInput', 'strokeSelect', 'distanceSelect',
           'officialRtInput', 'officialTimeInput', 'fpsSelect', 'turnEndModeSelect',
           'videoSourceBadge', 'btnToggleYtMode', 'btnToggleGuide', 'zoomLevelBadge', 'btnResetZoom',
           'tabLocalVideo', 'tabYoutubeVideo', 'paneLocalVideo', 'paneYoutubeVideo',
@@ -2700,6 +2753,7 @@
         const maxCols = Math.max(...rows.map(r => r.length));
         if (maxCols <= 3 && matchedCount >= 3) {
           let meet = state.meetName;
+          let raceDate = state.raceDate;
           let athlete = '不明選手';
           let rawStyle = '';
           let rawDist = '';
@@ -2712,9 +2766,10 @@
             const val = (r[1] || '').trim();
             if (!val) return;
 
-            if (key.includes('大会') || key.includes('meet')) meet = val;
+            if (key.includes('大会') || key.includes('meet') || key.includes('event')) meet = val;
+            else if (key.includes('日付') || key.includes('開催日') || key.includes('date')) raceDate = val;
             else if (key.includes('選手') || key.includes('氏名') || key.includes('名前') || key.includes('name') || key.includes('swimmer')) athlete = val;
-            else if (key.includes('種目') || key.includes('泳法') || key.includes('style') || key.includes('event')) rawStyle = val;
+            else if (key.includes('種目') || key.includes('泳法') || key.includes('style')) rawStyle = val;
             else if (key.includes('距離') || key.includes('dist')) rawDist = val;
             else if (key === 'rt' || key.includes('リアクション') || key.includes('反応') || key.includes('reaction')) rtSec = parseSwimTimeStr(val);
             else if (key.includes('記録') || key.includes('公式') || key.includes('タイム') || key.includes('result') || key.includes('total')) officialSec = parseSwimTimeStr(val);
@@ -2734,6 +2789,7 @@
           return [{
             id: 'csv_kv_1',
             meet,
+            raceDate,
             athlete,
             stroke,
             distance,
@@ -2741,10 +2797,169 @@
             officialTimeSec: officialSec,
             officialRt: rtSec !== null ? rtSec.toFixed(2) : '',
             splits50m,
+            lapDetails: [],
             convertedFromCumulative
           }];
         }
         return null;
+      }
+
+      /**
+       * 既存ストローク分析サイト出力形式のCSVパーサー
+       * 例:
+       * 水野 吉晴_100m_バタフライ
+       * name,date,distance,style,event
+       * 水野 吉晴,1970/01/01,100,バタフライ,26東スイ招待予選
+       * (空行)
+       * ,laps,25m split,50m split,100m split
+       * リアクションタイム,0.65,,,
+       * 25m,11.62,11.62,,
+       * 50m,26.28,14.66,26.28,
+       * 75m,40.45,14.17,,
+       * 100m,55.96,15.51,29.68,55.96
+       */
+      function tryParseStrokeAnalyzerSplitCsv(rows) {
+        // メタデータヘッダー行（name, date, distance, style, event）を探す
+        let metaHeaderIdx = -1;
+        for (let i = 0; i < Math.min(rows.length, 6); i++) {
+          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
+          if (norm.includes('name') && (norm.includes('distance') || norm.includes('style') || norm.includes('event'))) {
+            metaHeaderIdx = i;
+            break;
+          }
+        }
+        if (metaHeaderIdx === -1 || metaHeaderIdx + 1 >= rows.length) return null;
+
+        const metaHeaders = rows[metaHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
+        const metaValues = rows[metaHeaderIdx + 1];
+
+        const getMeta = (keys) => {
+          const idx = metaHeaders.findIndex(h => keys.some(k => h === k || h.includes(k)));
+          return idx !== -1 && metaValues[idx] !== undefined ? metaValues[idx].trim() : '';
+        };
+
+        const athlete = getMeta(['name', '選手', '氏名']) || '不明選手';
+        const raceDate = getMeta(['date', '日付', '開催日']) || state.raceDate;
+        const rawDist = getMeta(['distance', '距離']);
+        const rawStyle = getMeta(['style', '種目', '泳法']);
+        const meet = getMeta(['event', '大会']) || state.meetName;
+        const { stroke, distance } = parseEventAndDistance(rawStyle, rawDist);
+
+        // 下部ラップヘッダー行（laps, 25m split, 50m split, 100m split...）を探す
+        let lapHeaderIdx = -1;
+        for (let i = metaHeaderIdx + 2; i < rows.length; i++) {
+          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
+          if (norm.includes('laps') || norm.some(c => c.includes('split'))) {
+            lapHeaderIdx = i;
+            break;
+          }
+        }
+        if (lapHeaderIdx === -1) return null;
+
+        const lapHeaders = rows[lapHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
+        const idxLaps = lapHeaders.findIndex(h => h === 'laps' || h === 'lap' || h.includes('通過'));
+        const idx25 = lapHeaders.findIndex(h => h.includes('25m'));
+        const idx50 = lapHeaders.findIndex(h => h.includes('50m'));
+        const idx100 = lapHeaders.findIndex(h => h.includes('100m'));
+        const idx200 = lapHeaders.findIndex(h => h.includes('200m'));
+        const idx400 = lapHeaders.findIndex(h => h.includes('400m'));
+
+        let rtSec = null;
+        const lapDetails = [];
+
+        for (let r = lapHeaderIdx + 1; r < rows.length; r++) {
+          const cols = rows[r];
+          const label = (cols[0] || '').trim();
+          const labelLower = label.toLowerCase().replace(/\s+/g, '');
+          if (!labelLower) continue;
+
+          // リアクションタイム行
+          if (labelLower.includes('リアクション') || labelLower === 'rt' || labelLower.includes('reaction')) {
+            const rtColIdx = idxLaps !== -1 ? idxLaps : 1;
+            const parsedRt = parseSwimTimeStr(cols[rtColIdx]);
+            if (parsedRt !== null) rtSec = parsedRt;
+            continue;
+          }
+
+          // 距離行（25m, 50m, 75m, 100m...）
+          const dm = labelLower.match(/^(\d+)m?$/);
+          if (dm) {
+            const distVal = Number(dm[1]);
+            const lapCum = idxLaps !== -1 ? parseSwimTimeStr(cols[idxLaps]) : parseSwimTimeStr(cols[1]);
+            const split25 = idx25 !== -1 ? parseSwimTimeStr(cols[idx25]) : null;
+            const split50 = idx50 !== -1 ? parseSwimTimeStr(cols[idx50]) : null;
+            const split100 = idx100 !== -1 ? parseSwimTimeStr(cols[idx100]) : null;
+            const split200 = idx200 !== -1 ? parseSwimTimeStr(cols[idx200]) : null;
+            const split400 = idx400 !== -1 ? parseSwimTimeStr(cols[idx400]) : null;
+
+            lapDetails.push({
+              dist: distVal,
+              lapCum,
+              split25,
+              split50,
+              split100,
+              split200,
+              split400
+            });
+          }
+        }
+
+        lapDetails.sort((a, b) => a.dist - b.dist);
+
+        // 空欄のスプリットがあれば累積タイム(lapCum)から自動補完
+        let prevCum = 0;
+        let prev50Cum = 0;
+        let prev100Cum = 0;
+        for (let i = 0; i < lapDetails.length; i++) {
+          const item = lapDetails[i];
+          if (item.lapCum !== null) {
+            if (item.split25 === null && item.dist % 25 === 0) {
+              item.split25 = Number((item.lapCum - prevCum).toFixed(2));
+            }
+            if (item.dist % 50 === 0) {
+              if (item.split50 === null) {
+                item.split50 = Number((item.lapCum - prev50Cum).toFixed(2));
+              }
+              prev50Cum = item.lapCum;
+            }
+            if (item.dist % 100 === 0) {
+              if (item.split100 === null) {
+                item.split100 = Number((item.lapCum - prev100Cum).toFixed(2));
+              }
+              prev100Cum = item.lapCum;
+            }
+            prevCum = item.lapCum;
+          }
+        }
+
+        // 50m区間ラップ配列を生成（純粋スイム計算用）
+        const splits50m = lapDetails
+          .filter(d => d.dist % 50 === 0 && d.split50 !== null)
+          .map(d => Number(d.split50.toFixed(2)));
+
+        // 公式記録（Finish Time）の取得：該当距離のlapCum、または最終行のlapCum
+        const finishRow = lapDetails.find(d => d.dist === distance && d.lapCum !== null) ||
+                          [...lapDetails].reverse().find(d => d.lapCum !== null);
+        const officialSec = finishRow ? finishRow.lapCum : null;
+
+        if (splits50m.length === 0 && distance === 50 && officialSec !== null) {
+          splits50m.push(Number(officialSec.toFixed(2)));
+        }
+
+        return [{
+          id: 'csv_stroke_analyzer_1',
+          meet,
+          raceDate,
+          athlete,
+          stroke,
+          distance,
+          officialTime: officialSec !== null ? formatSwimRecord(officialSec) : '',
+          officialTimeSec: officialSec,
+          officialRt: rtSec !== null ? rtSec.toFixed(2) : '',
+          splits50m,
+          lapDetails,
+          convertedFromCumulative: false
+        }];
       }
 
       function importCsvText(csvText) {
@@ -2755,15 +2970,23 @@
           return;
         }
 
-        let parsedRaces = tryParseVerticalKeyValueCsv(rows);
+        // 1. 既存ストローク分析サイト出力フォーマット（name,date,distance,style,event + laps/splits）を優先判定
+        let parsedRaces = tryParseStrokeAnalyzerSplitCsv(rows);
 
+        // 2. 2列縦持ちキーバリュー形式を判定
+        if (!parsedRaces) {
+          parsedRaces = tryParseVerticalKeyValueCsv(rows);
+        }
+
+        // 3. 横持ち複数行テーブル形式を判定
         if (!parsedRaces) {
           const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g, ''));
           const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
 
-          const idxMeet = findCol(['大会', '日付', 'meet', 'date']);
+          const idxMeet = findCol(['大会', 'meet', 'event']);
+          const idxDate = findCol(['日付', '開催日', 'date']);
           const idxAthlete = findCol(['選手', '氏名', '名前', 'athlete', 'name', 'swimmer']);
-          const idxStroke = findCol(['種目', '泳法', 'stroke', 'style', 'event']);
+          const idxStroke = findCol(['種目', '泳法', 'stroke', 'style']);
           const idxDist = findCol(['距離', 'dist', 'distance']);
           const idxTime = findCol(['記録', '公式', 'タイム', 'result', 'time', 'total']);
           const idxRt = findCol(['rt', 'リアクション', '反応', 'reaction']);
@@ -2780,6 +3003,7 @@
             const cols = rows[r];
             const athlete = idxAthlete !== -1 ? (cols[idxAthlete] || '不明選手') : `選手${r}`;
             const meet = idxMeet !== -1 ? (cols[idxMeet] || state.meetName) : state.meetName;
+            const raceDate = idxDate !== -1 ? (cols[idxDate] || state.raceDate) : state.raceDate;
             const rawStyle = idxStroke !== -1 ? cols[idxStroke] : '';
             const rawDist = idxDist !== -1 ? cols[idxDist] : '';
             const { stroke, distance } = parseEventAndDistance(rawStyle, rawDist);
@@ -2795,6 +3019,7 @@
             parsedRaces.push({
               id: `csv_${r}`,
               meet,
+              raceDate,
               athlete,
               stroke,
               distance,
@@ -2802,6 +3027,7 @@
               officialTimeSec: officialSec,
               officialRt: rtSec !== null ? rtSec.toFixed(2) : '',
               splits50m,
+              lapDetails: [],
               convertedFromCumulative
             });
           }
@@ -2813,13 +3039,48 @@
         }
 
         state.csvRaces = parsedRaces;
-        els.btnOpenCsvModal.style.display = 'inline-flex';
+        els.btnOpenCsvModal.style.display = parsedRaces.length > 1 ? 'inline-flex' : 'none';
         els.csvCountBadge.textContent = String(parsedRaces.length);
 
         applyCsvRace(0, true);
         if (parsedRaces.length > 1) {
           openCsvRaceSelectModal();
           showToast(`${parsedRaces.length}件のレースを検出しました。分析対象を選択してください`);
+        }
+      }
+
+      function applyCsvRace(index, suppressSingleToast = false) {
+        const race = state.csvRaces[index];
+        if (!race) return;
+
+        state.selectedCsvIndex = index;
+        state.meetName = race.meet;
+        state.raceDate = race.raceDate || state.raceDate;
+        state.athleteName = race.athlete;
+        state.stroke = race.stroke;
+        state.distance = race.distance;
+        state.officialTime = race.officialTime;
+        state.officialRt = race.officialRt;
+        state.officialLaps = race.splits50m || [];
+        state.officialLapDetails = race.lapDetails || [];
+        state.csvSplitConverted = Boolean(race.convertedFromCumulative);
+
+        els.meetNameInput.value = state.meetName;
+        if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
+        els.athleteNameInput.value = state.athleteName;
+        els.strokeSelect.value = state.stroke;
+        els.distanceSelect.value = String(state.distance);
+        els.officialTimeInput.value = state.officialTime;
+        els.officialRtInput.value = state.officialRt;
+
+        renderStampPanel();
+        renderCompareSelector();
+        renderDashboard();
+
+        if (race.convertedFromCumulative) {
+          showToast(`「${race.athlete}」を反映しました（累積スプリットを50m区間ラップへ自動変換）`);
+        } else if (!suppressSingleToast || state.csvRaces.length === 1) {
+          showToast(`CSVデータを反映しました: ${race.athlete} (${race.distance}m ${getStrokeLabel(race.stroke)} / ${race.officialTime})`);
         }
       }
 
@@ -3238,12 +3499,14 @@
           id: `race_${Date.now()}`,
           savedAt: new Date().toISOString(),
           meetName: state.meetName || '無題の大会',
+          raceDate: state.raceDate || '',
           athleteName: state.athleteName || '選手名未入力',
           stroke: state.stroke,
           distance: state.distance,
           officialTime: state.officialTime,
           officialRt: state.officialRt,
           officialLaps: [...state.officialLaps],
+          officialLapDetails: state.officialLapDetails.map(d => ({ ...d })),
           turnEndMode: state.turnEndMode,
           start: { ...state.start },
           turns: state.turns.slice(0, turnCount).map(t => ({ ...t }))
@@ -3381,11 +3644,50 @@
           ? state.officialLaps.map((v, idx) => `<span class="lap-chip num"><span>${idx * 50}-${(idx + 1) * 50}m</span>${v.toFixed(2)}s</span>`).join('')
           : `<span style="font-size:11px; color:var(--text-muted);">ラップ未設定（CSV読込で自動反映）</span>`;
 
+        // 25m刻みの詳細ラップテーブル（CSVから25m/50m/100m splitが読み込まれている場合に表示）
+        let detailTableHtml = '';
+        if (state.officialLapDetails && state.officialLapDetails.length > 0) {
+          const has100 = state.officialLapDetails.some(d => d.split100 !== null && d.split100 !== undefined);
+          const has200 = state.officialLapDetails.some(d => d.split200 !== null && d.split200 !== undefined);
+          const has400 = state.officialLapDetails.some(d => d.split400 !== null && d.split400 !== undefined);
+
+          detailTableHtml = `
+            <div class="csv-detail-table-wrap">
+              <table class="csv-detail-table">
+                <thead>
+                  <tr>
+                    <th>距離</th>
+                    <th>通過 (laps)</th>
+                    <th>25m split</th>
+                    <th>50m split</th>
+                    ${has100 ? '<th>100m split</th>' : ''}
+                    ${has200 ? '<th>200m split</th>' : ''}
+                    ${has400 ? '<th>400m split</th>' : ''}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${state.officialLapDetails.map(d => `
+                    <tr>
+                      <td class="dist-col">${d.dist}m</td>
+                      <td>${d.lapCum !== null && d.lapCum !== undefined ? formatSwimRecord(d.lapCum) : '-'}</td>
+                      <td>${d.split25 !== null && d.split25 !== undefined ? d.split25.toFixed(2) : '-'}</td>
+                      <td class="split50-col">${d.split50 !== null && d.split50 !== undefined ? d.split50.toFixed(2) : '-'}</td>
+                      ${has100 ? `<td>${d.split100 !== null && d.split100 !== undefined ? formatSwimRecord(d.split100) : '-'}</td>` : ''}
+                      ${has200 ? `<td>${d.split200 !== null && d.split200 !== undefined ? formatSwimRecord(d.split200) : '-'}</td>` : ''}
+                      ${has400 ? `<td>${d.split400 !== null && d.split400 !== undefined ? formatSwimRecord(d.split400) : '-'}</td>` : ''}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
         els.csvSummaryBanner.innerHTML = `
           <div class="csv-summary-panel">
             <div class="csv-summary-main">
               <span class="csv-tag-badge">公式リザルト連携</span>
-              <span><strong>${state.meetName || '大会名未設定'}</strong></span>
+              <span><strong>${state.meetName || '大会名未設定'}</strong>${state.raceDate ? ` <span class="num" style="color:var(--text-secondary);">(${state.raceDate})</span>` : ''}</span>
               <span>選手: <strong>${state.athleteName || '未設定'}</strong></span>
               <span>種目: <strong>${state.distance}m ${getStrokeLabel(state.stroke)} (${state.stroke})</strong></span>
               <span>公式RT: <strong class="num">${state.officialRt ? state.officialRt + 's' : '--'}</strong></span>
@@ -3395,6 +3697,7 @@
             <div class="csv-lap-chips">
               ${lapChipsHtml}
             </div>
+            ${detailTableHtml}
           </div>
         `;
 
@@ -3585,12 +3888,16 @@
          ---------------------------------------------------------------------- */
       function buildSampleCsvContent() {
         return [
-          '大会名,選手名,種目,距離,RT,公式記録,50m,100m,150m,200m',
-          '2026/11/15 秋季記録会,山田 太郎,100m自由形,100,0.63,50.12,24.10,50.12,,',
-          '2026/11/15 秋季記録会,佐藤 健太,Fly,100,0.65,53.40,25.15,28.25,,',
-          '2026/11/15 秋季記録会,鈴木 大輔,200Br,200,0.68,2:14.85,30.20,1:04.50,1:39.40,2:14.85',
-          '2026/11/15 秋季記録会,高橋 蓮,200m背泳ぎ,200,0.60,2:01.50,28.40,59.20,1:30.40,2:01.50',
-          '2026/11/15 秋季記録会,中村 翼,50m自由形,50,0.61,22.84,22.84,,,'
+          '水野 吉晴_100m_バタフライ,,,,',
+          'name,date,distance,style,event',
+          '水野 吉晴,1970/01/01,100,バタフライ,26東スイ招待予選',
+          ',,,,',
+          ',laps,25m split,50m split,100m split',
+          'リアクションタイム,0.65,,,',
+          '25m,11.62,11.62,,',
+          '50m,26.28,14.66,26.28,',
+          '75m,40.45,14.17,,',
+          '100m,55.96,15.51,29.68,55.96'
         ].join('\n');
       }
 
@@ -3610,15 +3917,18 @@
 
       function loadFullDemo() {
         state.meetName = '2026/11/15 秋季記録会';
+        state.raceDate = '2026/11/15';
         state.athleteName = '山田 太郎';
         state.stroke = 'Fr';
         state.distance = 100;
         state.officialTime = '50.12';
         state.officialRt = '0.63';
         state.officialLaps = [24.10, 26.02];
+        state.officialLapDetails = [];
         state.csvSplitConverted = false;
 
         els.meetNameInput.value = state.meetName;
+        if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
         els.athleteNameInput.value = state.athleteName;
         els.strokeSelect.value = state.stroke;
         els.distanceSelect.value = String(state.distance);
@@ -3678,12 +3988,14 @@
         }
         return JSON.stringify({
           meetName: state.meetName,
+          raceDate: state.raceDate,
           athleteName: state.athleteName,
           stroke: state.stroke,
           distance: state.distance,
           officialTime: state.officialTime,
           officialRt: state.officialRt,
           officialLaps: state.officialLaps,
+          officialLapDetails: state.officialLapDetails,
           turnEndMode: state.turnEndMode,
           start: {
             ...state.start,
@@ -3721,16 +4033,19 @@
             const target = state.savedRaces.find(x => x.id === btn.dataset.id);
             if (!target) return;
             state.meetName = target.meetName;
+            state.raceDate = target.raceDate || '';
             state.athleteName = target.athleteName;
             state.stroke = target.stroke;
             state.distance = target.distance;
             state.officialTime = target.officialTime || '';
             state.officialRt = target.officialRt || '';
             state.officialLaps = target.officialLaps || [];
+            state.officialLapDetails = target.officialLapDetails || [];
             state.start = { ...target.start };
             target.turns.forEach((t, idx) => { if (state.turns[idx]) state.turns[idx] = { ...t }; });
 
             els.meetNameInput.value = state.meetName;
+            if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
             els.athleteNameInput.value = state.athleteName;
             els.strokeSelect.value = state.stroke;
             els.distanceSelect.value = String(state.distance);
@@ -3792,6 +4107,12 @@
           state.meetName = e.target.value;
           renderDashboard();
         });
+        if (els.raceDateInput) {
+          els.raceDateInput.addEventListener('input', (e) => {
+            state.raceDate = e.target.value;
+            renderDashboard();
+          });
+        }
         els.strokeSelect.addEventListener('change', (e) => {
           state.stroke = e.target.value;
           renderStampPanel();
@@ -4034,12 +4355,14 @@
             const parsed = JSON.parse(els.jsonOutputText.value);
             if (!parsed || !parsed.start) throw new Error('Invalid format');
             state.meetName = parsed.meetName || state.meetName;
+            state.raceDate = parsed.raceDate || state.raceDate;
             state.athleteName = parsed.athleteName || state.athleteName;
             state.stroke = parsed.stroke || 'Fr';
             state.distance = Number(parsed.distance) || 100;
             state.officialTime = parsed.officialTime || '';
             state.officialRt = parsed.officialRt || '';
             state.officialLaps = parsed.officialLaps || [];
+            state.officialLapDetails = parsed.officialLapDetails || [];
             state.start = { ...state.start, ...parsed.start };
             if (Array.isArray(parsed.turns)) {
               parsed.turns.forEach((t, idx) => {
@@ -4047,6 +4370,7 @@
               });
             }
             els.meetNameInput.value = state.meetName;
+            if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
             els.athleteNameInput.value = state.athleteName;
             els.strokeSelect.value = state.stroke;
             els.distanceSelect.value = String(state.distance);
