@@ -162,6 +162,21 @@
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    /* 打刻ボックスのアクティブ＆打刻済みハイライト */
+    .stamp-box {
+      transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .stamp-box.is-active {
+      border-color: #38bdf8 !important;
+      background-color: rgba(56, 189, 248, 0.10) !important;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
+    }
+    .stamp-box.is-stamped {
+      border-color: rgba(16, 185, 129, 0.45);
+    }
+    .stamp-box.is-active.is-stamped {
+      border-color: #38bdf8 !important;
+    }
   </style>
 </head>
 <body class="bg-pureblack text-zinc-100 antialiased selection:bg-sky-500 selection:text-white">
@@ -224,6 +239,11 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <label class="pill-btn px-3.5 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-emerald-300 flex items-center gap-1.5 cursor-pointer" title="公式ラップCSVを読み込んで分析画面に反映">
+            <i class="fa-solid fa-file-csv text-emerald-400"></i>
+            <span>CSV読込</span>
+            <input type="file" accept=".csv,text/csv" class="hidden" onchange="window.handleCsvImport(event, true)">
+          </label>
           <button type="button" onclick="window.openLoadModal()"
             class="pill-btn px-3.5 py-2 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-200 flex items-center gap-1.5 cursor-pointer">
             <i class="fa-solid fa-cloud-arrow-down text-sky-400"></i>
@@ -404,6 +424,40 @@
               </div>
             </div>
           </div>
+
+          <!-- クイック連続打刻ドック（動画プレイヤー直下で視線移動なしに連続打刻） -->
+          <div id="quick-stamp-dock" class="bg-gradient-to-r from-sky-950/60 via-surface to-emerald-950/50 p-3.5 rounded-2xl border border-sky-500/40 flex flex-col gap-2.5 shadow-lg">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-black whitespace-nowrap">連続打刻モード</span>
+                <span id="active-stamp-step-label" class="text-xs sm:text-sm font-bold text-white truncate">次: 号砲 (0m)</span>
+              </div>
+              <span id="active-stamp-progress" class="text-[11px] font-mono text-zinc-400 whitespace-nowrap">0 / 0 完了</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="window.moveStampStep(-1)"
+                class="pill-btn px-3.5 py-3 bg-black/80 hover:bg-zinc-900 border border-borderDark text-xs font-bold text-zinc-300 hover:text-white whitespace-nowrap cursor-pointer" title="前の打刻項目へ (↑)">
+                <i class="fa-solid fa-chevron-left mr-1"></i>前へ
+              </button>
+
+              <button id="btn-quick-stamp-main" type="button" onclick="window.stampActiveStep()"
+                class="pill-btn flex-1 py-3 px-4 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-300 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+                <i class="fa-solid fa-stopwatch text-base"></i>
+                <span id="btn-quick-stamp-text">ここを打刻して次へ</span>
+              </button>
+
+              <button type="button" onclick="window.moveStampStep(1)"
+                class="pill-btn px-3.5 py-3 bg-black/80 hover:bg-zinc-900 border border-borderDark text-xs font-bold text-zinc-300 hover:text-white whitespace-nowrap cursor-pointer" title="次の打刻項目へ (↓)">
+                次へ<i class="fa-solid fa-chevron-right ml-1"></i>
+              </button>
+            </div>
+
+            <div class="hidden sm:flex items-center justify-between text-[10.5px] text-zinc-400 px-1">
+              <span>ショートカット: <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">Space</kbd> 再生/停止 ・ <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">←/→</kbd> ±1F ・ <kbd class="px-1.5 py-0.5 bg-black rounded border border-borderDark text-zinc-200 font-mono">Enter</kbd> 打刻して次へ</span>
+              <button type="button" onclick="window.clearAllTimestamps()" class="text-zinc-400 hover:text-rose-400 underline cursor-pointer">全打刻クリア</button>
+            </div>
+          </div>
         </div>
 
         <!-- 右カラム (5列): レース基本情報＆ワンタップ打刻パネル -->
@@ -474,40 +528,48 @@
           <div class="bg-black/60 p-3 rounded-xl border border-borderDark flex flex-col gap-2.5">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-sky-400"><i class="fa-solid fa-flag-checkered mr-1"></i>スタート局面 (0m → 15m)</span>
-              <span class="text-[10px] text-zinc-500">タップで現在時刻打刻 / 直接編集可</span>
+              <span class="text-[10px] text-zinc-400">行タップで選択 / ボタンで即打刻</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-              <div class="flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark">
-                <button type="button" onclick="window.stampTimestamp('startGun')" class="px-2.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div id="stamp-box-startGun" onclick="window.selectStampStep('startGun')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
+                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startGun')" class="px-2.5 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 text-xs font-bold whitespace-nowrap cursor-pointer">
                   号砲(0m)
                 </button>
-                <input id="ts-startGun" type="number" step="0.01" placeholder="0.00" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2 py-1 text-xs font-mono text-right">
+                <input id="ts-startGun" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startGun')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
+                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
+                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startGun')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
+                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startGun')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
               </div>
 
-              <div class="flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark">
-                <button type="button" onclick="window.stampTimestamp('startEntry')" class="px-2.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">
+              <div id="stamp-box-startEntry" onclick="window.selectStampStep('startEntry')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
+                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startEntry')" class="px-2.5 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 text-xs font-bold whitespace-nowrap cursor-pointer">
                   入水
                 </button>
-                <input id="ts-startEntry" type="number" step="0.01" placeholder="0.00" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2 py-1 text-xs font-mono text-right">
+                <input id="ts-startEntry" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startEntry')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
+                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
+                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startEntry')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
+                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startEntry')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
               </div>
 
-              <div class="flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark">
-                <button type="button" onclick="window.stampTimestamp('startBreakout')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">
+              <div id="stamp-box-startBreakout" onclick="window.selectStampStep('startBreakout')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
+                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('startBreakout')" class="px-2.5 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 text-xs font-bold whitespace-nowrap cursor-pointer">
                   浮き上がり
                 </button>
-                <input id="ts-startBreakout" type="number" step="0.01" placeholder="0.00" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2 py-1 text-xs font-mono text-right">
+                <input id="ts-startBreakout" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('startBreakout')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
+                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
+                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('startBreakout')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
+                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('startBreakout')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
               </div>
 
-              <div class="flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark">
-                <button type="button" onclick="window.stampTimestamp('start15m')" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">
+              <div id="stamp-box-start15m" onclick="window.selectStampStep('start15m')" class="stamp-box flex items-center gap-1.5 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">
+                <button type="button" onclick="event.stopPropagation(); window.stampTimestamp('start15m')" class="px-2.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 text-xs font-bold whitespace-nowrap cursor-pointer">
                   15m通過
                 </button>
-                <input id="ts-start15m" type="number" step="0.01" placeholder="0.00" oninput="window.recalculateAllMetrics()"
-                  class="apple-input w-full px-2 py-1 text-xs font-mono text-right">
+                <input id="ts-start15m" type="number" step="0.01" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep('start15m')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();"
+                  class="apple-input w-full px-2 py-1.5 text-xs sm:text-sm font-mono text-right">
+                <button type="button" onclick="event.stopPropagation(); window.jumpToStamp('start15m')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="この打刻位置へ動画移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>
+                <button type="button" onclick="event.stopPropagation(); window.clearSingleStamp('start15m')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>
               </div>
             </div>
 
@@ -576,6 +638,7 @@
               <div class="text-[11px] text-zinc-400 font-medium mb-1">スタート 15m</div>
               <div id="kpi-start-15m" class="text-xl sm:text-2xl font-extrabold font-mono text-sky-400">--.--</div>
               <div id="kpi-start-breakout" class="text-[11px] text-zinc-500 mt-1">浮上: --.--s</div>
+              <div id="kpi-rt-compare" class="text-[10px] text-zinc-400 mt-0.5 font-mono">RT比較: --</div>
             </div>
 
             <div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark">
@@ -593,7 +656,7 @@
             <div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark">
               <div class="text-[11px] text-zinc-400 font-medium mb-1">純粋スイム速度</div>
               <div id="kpi-clean-speed" class="text-xl sm:text-2xl font-extrabold font-mono text-amber-400">--.--</div>
-              <div class="text-[11px] text-zinc-500 mt-1">m / 秒</div>
+              <div id="kpi-clean-speed-unit" class="text-[11px] text-zinc-500 mt-1">m / 秒</div>
             </div>
           </div>
 
@@ -613,6 +676,40 @@
                 <!-- JSで動的描画 -->
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中下段: 公式リザルト＆ラップ詳細 + 純粋スイム統合カード -->
+      <div id="analyzer-official-lap-section" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- 左7列: 公式リザルト＆ラップ詳細 -->
+        <div class="lg:col-span-7 apple-card p-4 sm:p-5 flex flex-col gap-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-borderDark pb-2.5">
+            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-stopwatch-20 text-emerald-400"></i>
+              <span>公式リザルト＆ラップ詳細</span>
+            </h3>
+            <span id="analyzer-lap-meta-badge" class="text-xs text-zinc-400">CSVまたはラップ入力から自動反映</span>
+          </div>
+          <div id="analyzer-lap-summary-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <!-- JSで動的描画 -->
+          </div>
+          <div id="analyzer-lap-table-wrapper" class="bg-black/60 rounded-xl border border-borderDark overflow-x-auto">
+            <!-- JSで動的描画 -->
+          </div>
+        </div>
+
+        <!-- 右5列: 純粋スイム統合分析（CSV 50m split × 動画スタート/ターン区間） -->
+        <div class="lg:col-span-5 apple-card p-4 sm:p-5 flex flex-col gap-3.5">
+          <div class="flex items-center justify-between border-b border-borderDark pb-2.5">
+            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-layer-group text-sky-400"></i>
+              <span>50m別 純粋スイム統合分析</span>
+            </h3>
+            <span class="text-[11px] text-zinc-400">CSV 50m split × 動画打刻</span>
+          </div>
+          <div id="analyzer-pure-swim-legs" class="flex flex-col gap-2.5">
+            <!-- JSで動的描画 -->
           </div>
         </div>
       </div>
@@ -690,7 +787,7 @@
           <label class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-200 cursor-pointer inline-flex items-center gap-1.5">
             <i class="fa-solid fa-file-csv text-emerald-400"></i>
             <span>CSV一括読込</span>
-            <input type="file" accept=".csv,text/csv" class="hidden" onchange="window.handleCsvImport(event)">
+            <input type="file" accept=".csv,text/csv" class="hidden" onchange="window.handleCsvImport(event, false)">
           </label>
           <button type="button" onclick="window.downloadSampleCsv()"
             class="pill-btn px-3 py-1.5 bg-surface hover:bg-surfaceHover border border-borderDark text-xs font-semibold text-zinc-300 hover:text-white inline-flex items-center gap-1.5 cursor-pointer">
@@ -810,6 +907,10 @@
           videoId: '',
           startSec: 0
         },
+        // 現在の公式ラップ表データ（CSV読込・手入力同期用）
+        currentLapTable: [],
+        // 連続打刻用アクティブステップキー
+        activeStampKey: 'startGun',
         // 4階層ブラウザ状態
         historyLevel: 1, // 1:選手, 2:種目, 3:大会/タイム一覧, 4:詳細
         selectedSwimmer: '',
@@ -1223,31 +1324,55 @@
         appState.preservedYoutube = { url: '', videoId: '', startSec: 0 };
 
         if (container) {
-          container.innerHTML = '<div class="text-center text-zinc-500 text-xs p-4"><i class="fa-brands fa-youtube text-3xl text-red-500/70 mb-2 block"></i>YouTube URLを読み込むとここに表示されます</div>';
+          container.innerHTML = '<div class="text-center text-zinc-500 text-xs p-4">' +
+            '<i class="fa-brands fa-youtube text-3xl text-red-500/70 mb-2 block"></i>' +
+            'YouTube URLを読み込むとここに表示されます</div>';
         }
         if (statusText) {
-          statusText.textContent = 'YouTubeリンクをクリアしました';
+          statusText.textContent = 'YouTube URLを入力して「動画読込」を押すと埋め込み再生・保存ができます';
         }
         if (savedBadge) {
           savedBadge.style.display = 'none';
         }
-        window.showToast('YouTubeリンクをクリアしました', 'info');
       };
 
-      // ==================== 3. ローカル動画＆ズーム・パン・基準ライン操作 ====================
+      // ==================== 3. ローカル動画再生・コマ送り・YouTube計測タイマー ====================
       window.handleLocalVideoUpload = function(event) {
         var file = event.target.files && event.target.files[0];
         if (!file) return;
-        var videoEl = document.getElementById('local-video-player');
-        var labelEl = document.getElementById('local-video-filename');
-        if (labelEl) labelEl.textContent = file.name;
-        if (videoEl) {
-          var objectUrl = URL.createObjectURL(file);
-          videoEl.src = objectUrl;
-          videoEl.load();
-          window.resetPanZoom();
-          window.showToast('動画を読み込みました: ' + file.name, 'success');
+        var video = document.getElementById('local-video-player');
+        var nameLabel = document.getElementById('local-video-filename');
+        if (!video) return;
+
+        window.switchMediaSource('local');
+        var objUrl = URL.createObjectURL(file);
+        video.src = objUrl;
+        video.load();
+        if (nameLabel) nameLabel.textContent = file.name;
+        window.showToast('動画を読み込みました: ' + file.name, 'success');
+      };
+
+      function updateLocalVideoTimeUI() {
+        var video = document.getElementById('local-video-player');
+        var curEl = document.getElementById('video-current-time');
+        var durEl = document.getElementById('video-duration-time');
+        var seekEl = document.getElementById('video-seek-bar');
+        if (!video) return;
+
+        var cur = video.currentTime || 0;
+        var dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+        if (curEl) curEl.textContent = formatClock(cur);
+        if (durEl) durEl.textContent = formatClock(dur);
+        if (seekEl && dur > 0) {
+          seekEl.value = String((cur / dur) * 100);
         }
+      }
+
+      window.seekLocalVideo = function(percentVal) {
+        var video = document.getElementById('local-video-player');
+        if (!video || !isFinite(video.duration) || video.duration <= 0) return;
+        video.currentTime = (parseFloat(percentVal) / 100) * video.duration;
+        updateLocalVideoTimeUI();
       };
 
       window.togglePlayPause = function() {
@@ -1255,88 +1380,98 @@
           window.toggleYtStopwatch();
           return;
         }
-        var videoEl = document.getElementById('local-video-player');
+        var video = document.getElementById('local-video-player');
         var btn = document.getElementById('btn-play-pause');
-        if (!videoEl || !videoEl.src) {
-          window.showToast('先に動画ファイルを選択してください', 'warning');
+        if (!video) return;
+
+        if (!video.src) {
+          window.showToast('先にローカル動画を選択するか、YouTubeタブに切り替えてください', 'warning');
           return;
         }
-        if (videoEl.paused) {
-          videoEl.play();
+        if (video.paused) {
+          video.play().catch(function() {});
           if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>一時停止';
         } else {
-          videoEl.pause();
+          video.pause();
           if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
         }
       };
 
       window.stepFrame = function(frameDelta) {
-        if (appState.mediaSource === 'youtube') {
-          // YouTubeモード時は計測タイマーを微調整
-          appState.ytSwElapsed = Math.max(0, appState.ytSwElapsed + frameDelta * 0.0333);
-          var disp = document.getElementById('yt-stopwatch-display');
-          if (disp) disp.textContent = appState.ytSwElapsed.toFixed(2);
+        var video = document.getElementById('local-video-player');
+        var btn = document.getElementById('btn-play-pause');
+        if (!video || !video.src) {
+          window.showToast('ローカル動画が読み込まれていません', 'warning');
           return;
         }
-        var videoEl = document.getElementById('local-video-player');
-        if (!videoEl || !videoEl.src) return;
-        videoEl.pause();
-        var btn = document.getElementById('btn-play-pause');
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
-        var fpsStep = 1 / 30;
-        var nextTime = Math.max(0, Math.min(videoEl.duration || 9999, videoEl.currentTime + frameDelta * fpsStep));
-        videoEl.currentTime = nextTime;
-      };
-
-      window.seekLocalVideo = function(percentVal) {
-        var videoEl = document.getElementById('local-video-player');
-        if (!videoEl || !videoEl.duration) return;
-        videoEl.currentTime = (parseFloat(percentVal) / 100) * videoEl.duration;
+        if (!video.paused) {
+          video.pause();
+          if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+        }
+        var fps = 30;
+        var nextTime = Math.max(0, (video.currentTime || 0) + (frameDelta / fps));
+        if (isFinite(video.duration) && video.duration > 0) {
+          nextTime = Math.min(video.duration, nextTime);
+        }
+        video.currentTime = nextTime;
+        updateLocalVideoTimeUI();
       };
 
       window.setPlaybackRate = function(rate) {
-        var videoEl = document.getElementById('local-video-player');
-        if (videoEl) videoEl.playbackRate = rate;
+        var video = document.getElementById('local-video-player');
+        if (video) {
+          video.playbackRate = rate;
+        }
         var btns = document.querySelectorAll('.rate-btn');
         for (var i = 0; i < btns.length; i++) {
           var b = btns[i];
-          if (b.textContent.indexOf(rate + 'x') !== -1) {
-            b.className = 'rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer';
-          } else {
-            b.className = 'rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer';
-          }
+          var isMatch = parseFloat(b.textContent) === rate;
+          b.className = isMatch
+            ? 'rate-btn px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500 text-[11px] font-mono text-sky-300 font-bold cursor-pointer'
+            : 'rate-btn px-2.5 py-1.5 rounded-lg bg-surface border border-borderDark text-[11px] font-mono text-zinc-300 hover:text-white cursor-pointer';
         }
       };
 
-      // YouTube計測ストップウォッチ
+      function getCurrentStopwatchSec() {
+        if (!appState.ytSwRunning) return appState.ytSwElapsed;
+        return appState.ytSwElapsed + ((performance.now() - appState.ytSwStartTime) / 1000);
+      }
+
       window.toggleYtStopwatch = function() {
         var btn = document.getElementById('btn-yt-sw-toggle');
         var disp = document.getElementById('yt-stopwatch-display');
-        if (!appState.ytSwRunning) {
+        if (appState.ytSwRunning) {
+          appState.ytSwElapsed = getCurrentStopwatchSec();
+          appState.ytSwRunning = false;
+          if (appState.ytSwTimerId) {
+            clearInterval(appState.ytSwTimerId);
+            appState.ytSwTimerId = null;
+          }
+          if (disp) disp.textContent = appState.ytSwElapsed.toFixed(2);
+          if (btn) {
+            btn.className = 'pill-btn px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer';
+            btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>開始';
+          }
+        } else {
+          appState.ytSwStartTime = performance.now();
           appState.ytSwRunning = true;
-          appState.ytSwStartTime = performance.now() - appState.ytSwElapsed * 1000;
           if (btn) {
             btn.className = 'pill-btn px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs cursor-pointer';
             btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i>停止';
           }
           appState.ytSwTimerId = setInterval(function() {
-            appState.ytSwElapsed = (performance.now() - appState.ytSwStartTime) / 1000;
-            if (disp) disp.textContent = appState.ytSwElapsed.toFixed(2);
-          }, 20);
-        } else {
-          appState.ytSwRunning = false;
-          if (appState.ytSwTimerId) clearInterval(appState.ytSwTimerId);
-          if (btn) {
-            btn.className = 'pill-btn px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs cursor-pointer';
-            btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再開';
-          }
+            if (disp) disp.textContent = getCurrentStopwatchSec().toFixed(2);
+          }, 30);
         }
       };
 
       window.resetYtStopwatch = function() {
         appState.ytSwRunning = false;
-        if (appState.ytSwTimerId) clearInterval(appState.ytSwTimerId);
         appState.ytSwElapsed = 0;
+        if (appState.ytSwTimerId) {
+          clearInterval(appState.ytSwTimerId);
+          appState.ytSwTimerId = null;
+        }
         var disp = document.getElementById('yt-stopwatch-display');
         var btn = document.getElementById('btn-yt-sw-toggle');
         if (disp) disp.textContent = '0.00';
@@ -1346,97 +1481,83 @@
         }
       };
 
-      // 現在のアクティブタイマー秒数を取得（打刻用）
-      function getCurrentActiveSeconds() {
-        if (appState.mediaSource === 'youtube') {
-          return Number(appState.ytSwElapsed.toFixed(2));
-        }
-        var videoEl = document.getElementById('local-video-player');
-        if (videoEl && !isNaN(videoEl.currentTime)) {
-          return Number(videoEl.currentTime.toFixed(2));
-        }
-        return 0;
+      // ==================== 4. ビューポートズーム・パン・基準ライン操作 ====================
+      function applyViewportTransform() {
+        var layer = document.getElementById('video-transform-layer');
+        if (!layer) return;
+        layer.style.transform = 'translate(' + appState.panX + 'px, ' + appState.panY + 'px) scale(' + appState.zoom + ')';
       }
 
-      // ズーム＆パン・基準ライン操作
-      function applyTransform() {
-        var layer = document.getElementById('video-transform-layer');
-        if (layer) {
-          layer.style.transform = 'translate(' + appState.panX + 'px, ' + appState.panY + 'px) scale(' + appState.zoom + ')';
+      window.setViewportMode = function(mode) {
+        appState.viewportMode = mode;
+        var panBtn = document.getElementById('mode-pan-btn');
+        var lineBtn = document.getElementById('mode-line-btn');
+        if (mode === 'line') {
+          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-red-500 text-white cursor-pointer';
+          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
+        } else {
+          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-sky-500 text-black cursor-pointer';
+          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
         }
-      }
+      };
 
       window.setZoomLevel = function(val) {
-        appState.zoom = parseFloat(val) || 1.0;
-        var slider = document.getElementById('zoom-slider');
+        var z = Math.max(1, Math.min(5, parseFloat(val) || 1));
+        appState.zoom = z;
+        if (z === 1) {
+          appState.panX = 0;
+          appState.panY = 0;
+        }
         var label = document.getElementById('zoom-value-label');
-        if (slider) slider.value = String(appState.zoom);
-        if (label) label.textContent = appState.zoom.toFixed(1) + 'x';
-        applyTransform();
+        var slider = document.getElementById('zoom-slider');
+        if (label) label.textContent = z.toFixed(1) + 'x';
+        if (slider) slider.value = String(z);
+        applyViewportTransform();
       };
 
       window.resetPanZoom = function() {
         appState.zoom = 1.0;
         appState.panX = 0;
         appState.panY = 0;
-        window.setZoomLevel(1.0);
+        var label = document.getElementById('zoom-value-label');
+        var slider = document.getElementById('zoom-slider');
+        if (label) label.textContent = '1.0x';
+        if (slider) slider.value = '1';
+        applyViewportTransform();
       };
 
-      window.setReferenceLinePos = function(percent) {
-        var p = Math.max(0, Math.min(100, parseFloat(percent) || 50));
-        appState.linePercent = p;
+      window.setReferenceLinePos = function(val) {
+        var pct = Math.max(0, Math.min(100, parseFloat(val) || 50));
+        appState.linePercent = pct;
         var line = document.getElementById('reference-line');
         var handle = document.getElementById('reference-line-handle');
-        var slider = document.getElementById('line-slider');
         var label = document.getElementById('line-value-label');
-        if (line) line.style.left = p + '%';
-        if (handle) handle.textContent = '基準線 ' + p.toFixed(0) + '%';
-        if (slider) slider.value = String(p);
-        if (label) label.textContent = p.toFixed(0) + '%';
-      };
-
-      window.setViewportMode = function(mode) {
-        appState.viewportMode = mode;
-        var panBtn = document.getElementById('mode-pan-btn');
-        var lineBtn = document.getElementById('mode-line-btn');
-        if (mode === 'pan') {
-          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-sky-500 text-black cursor-pointer';
-          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
-        } else {
-          if (lineBtn) lineBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold bg-red-500 text-white cursor-pointer';
-          if (panBtn) panBtn.className = 'pill-btn px-3 py-1 text-[11px] font-bold text-zinc-400 hover:text-white cursor-pointer';
-        }
+        var slider = document.getElementById('line-slider');
+        if (line) line.style.left = pct + '%';
+        if (handle) handle.textContent = '基準線 ' + Math.round(pct) + '%';
+        if (label) label.textContent = Math.round(pct) + '%';
+        if (slider) slider.value = String(pct);
       };
 
       function initViewportInteractions() {
         var viewport = document.getElementById('video-viewport');
-        var videoEl = document.getElementById('local-video-player');
-        if (videoEl) {
-          videoEl.addEventListener('timeupdate', function() {
-            var curEl = document.getElementById('video-current-time');
-            var durEl = document.getElementById('video-duration-time');
-            var seekEl = document.getElementById('video-seek-bar');
-            if (curEl) curEl.textContent = formatClock(videoEl.currentTime);
-            if (durEl && videoEl.duration) durEl.textContent = formatClock(videoEl.duration);
-            if (seekEl && videoEl.duration) {
-              seekEl.value = String((videoEl.currentTime / videoEl.duration) * 100);
-            }
-          });
-          videoEl.addEventListener('ended', function() {
+        var video = document.getElementById('local-video-player');
+        if (video) {
+          video.addEventListener('loadedmetadata', updateLocalVideoTimeUI);
+          video.addEventListener('timeupdate', updateLocalVideoTimeUI);
+          video.addEventListener('ended', function() {
             var btn = document.getElementById('btn-play-pause');
             if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
           });
         }
-
         if (!viewport) return;
 
-        function onPointerDown(clientX, clientY) {
+        function handlePointerStart(clientX, clientY) {
           appState.isDragging = true;
           appState.dragStartX = clientX;
           appState.dragStartY = clientY;
           appState.dragInitialPanX = appState.panX;
           appState.dragInitialPanY = appState.panY;
-
           if (appState.viewportMode === 'line') {
             var rect = viewport.getBoundingClientRect();
             var pct = ((clientX - rect.left) / rect.width) * 100;
@@ -1444,185 +1565,752 @@
           }
         }
 
-        function onPointerMove(clientX, clientY) {
+        function handlePointerMove(clientX, clientY) {
           if (!appState.isDragging) return;
           if (appState.viewportMode === 'line') {
             var rect = viewport.getBoundingClientRect();
             var pct = ((clientX - rect.left) / rect.width) * 100;
             window.setReferenceLinePos(pct);
           } else {
-            var dx = clientX - appState.dragStartX;
-            var dy = clientY - appState.dragStartY;
-            appState.panX = appState.dragInitialPanX + dx;
-            appState.panY = appState.dragInitialPanY + dy;
-            applyTransform();
+            appState.panX = appState.dragInitialPanX + (clientX - appState.dragStartX);
+            appState.panY = appState.dragInitialPanY + (clientY - appState.dragStartY);
+            applyViewportTransform();
           }
         }
 
-        function onPointerUp() {
+        function handlePointerEnd() {
           appState.isDragging = false;
         }
 
         viewport.addEventListener('mousedown', function(e) {
-          onPointerDown(e.clientX, e.clientY);
+          handlePointerStart(e.clientX, e.clientY);
         });
         window.addEventListener('mousemove', function(e) {
-          onPointerMove(e.clientX, e.clientY);
+          handlePointerMove(e.clientX, e.clientY);
         });
-        window.addEventListener('mouseup', onPointerUp);
+        window.addEventListener('mouseup', handlePointerEnd);
 
         viewport.addEventListener('touchstart', function(e) {
-          if (e.touches.length === 1) {
-            onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+          if (e.touches && e.touches.length === 1) {
+            handlePointerStart(e.touches[0].clientX, e.touches[0].clientY);
           }
         }, { passive: true });
         viewport.addEventListener('touchmove', function(e) {
-          if (appState.isDragging && e.touches.length === 1) {
-            onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+          if (e.touches && e.touches.length === 1) {
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
           }
         }, { passive: true });
-        viewport.addEventListener('touchend', onPointerUp);
+        viewport.addEventListener('touchend', handlePointerEnd);
+
+        viewport.addEventListener('wheel', function(e) {
+          e.preventDefault();
+          var delta = e.deltaY < 0 ? 0.2 : -0.2;
+          window.setZoomLevel(appState.zoom + delta);
+        }, { passive: false });
       }
 
-      // ==================== 4. 種目連動表記・ターン＆ラップ動的生成 ====================
+      // ==================== 4.5 種目・距離に応じた動的フォーム構築＆タイムスタンプ打刻 ====================
+      function getTurnDistances(distance) {
+        var d = parseInt(distance, 10) || 100;
+        var list = [];
+        for (var mark = 50; mark < d; mark += 50) {
+          list.push(mark);
+        }
+        return list;
+      }
+
       window.updateStyleTerminology = function() {
         var styleSel = document.getElementById('input-race-style');
         var distSel = document.getElementById('input-race-distance');
-        var styleCode = styleSel ? styleSel.value : 'Fr';
-        var dist = distSel ? parseInt(distSel.value, 10) : 100;
+        var style = styleSel ? styleSel.value : 'Fr';
+        var dist = distSel ? distSel.value : '100';
 
-        var kickTerm = getKickTermByStyle(styleCode);
-        var kickShort = getKickShortTermByStyle(styleCode);
+        var kickFull = getKickTermByStyle(style);
+        var kickShort = getKickShortTermByStyle(style);
 
-        var badge = document.getElementById('style-kick-badge');
+        var badgeEl = document.getElementById('style-kick-badge');
         var startKickLabel = document.getElementById('label-start-kick');
         var thKick = document.getElementById('th-kick-type');
         var summaryTag = document.getElementById('summary-style-tag');
-        var chart2Title = document.getElementById('chart-2-title');
 
-        if (badge) badge.textContent = kickTerm;
+        if (badgeEl) badgeEl.textContent = kickFull;
         if (startKickLabel) startKickLabel.textContent = kickShort + '数';
         if (thKick) thKick.textContent = kickShort;
-        if (summaryTag) summaryTag.textContent = dist + 'm ' + getStyleLabel(styleCode);
-        if (chart2Title) chart2Title.textContent = '② 水中動作指標比較 (浮上時間・' + kickShort + '数)';
+        if (summaryTag) summaryTag.textContent = dist + 'm ' + getStyleLabel(style);
       };
 
-      function getTurnDistances(totalDist) {
-        // 長水路(50mターン)基準を基本とし、50m種目はターン0回（または25mターンも考慮可能だが標準は50m毎ターン）
-        var turns = [];
-        for (var d = 50; d < totalDist; d += 50) {
-          turns.push(d);
-        }
-        return turns;
-      }
-
-      window.onStyleOrDistanceChange = function(preservedData) {
+      window.onStyleOrDistanceChange = function(presetRace) {
         window.updateStyleTerminology();
-        var distSel = document.getElementById('input-race-distance');
+
         var styleSel = document.getElementById('input-race-style');
-        var dist = distSel ? parseInt(distSel.value, 10) : 100;
-        var styleCode = styleSel ? styleSel.value : 'Fr';
-        var kickShort = getKickShortTermByStyle(styleCode);
+        var distSel = document.getElementById('input-race-distance');
+        var style = styleSel ? styleSel.value : 'Fr';
+        var distance = parseInt(distSel ? distSel.value : '100', 10) || 100;
+        var kickShort = getKickShortTermByStyle(style);
 
-        var turns = getTurnDistances(dist);
+        // 既存入力値のスナップショット保持
+        var prevTurnValues = {};
+        var prevTurnKicks = {};
+        var prevFinishEl = document.getElementById('ts-finish');
+        var prevFinishVal = prevFinishEl ? prevFinishEl.value : '';
+
+        var existingTurnInputs = document.querySelectorAll('[id^="ts-turn-"]');
+        for (var eIdx = 0; eIdx < existingTurnInputs.length; eIdx++) {
+          prevTurnValues[existingTurnInputs[eIdx].id] = existingTurnInputs[eIdx].value;
+        }
+        var existingKickInputs = document.querySelectorAll('[id^="turn-kicks-"]');
+        for (var kIdx = 0; kIdx < existingKickInputs.length; kIdx++) {
+          prevTurnKicks[existingKickInputs[kIdx].id] = existingKickInputs[kIdx].value;
+        }
+
+        // ターン＆ゴール打刻エリア構築
         var turnsContainer = document.getElementById('dynamic-turns-container');
+        var turnDists = getTurnDistances(distance);
         if (turnsContainer) {
-          var html = '';
-          for (var i = 0; i < turns.length; i++) {
-            var td = turns[i];
-            var pTurn = preservedData && preservedData.timestamps && preservedData.timestamps.turns ? preservedData.timestamps.turns[String(td)] : null;
-            var pKick = preservedData && preservedData.kickCounts && preservedData.kickCounts.turns ? preservedData.kickCounts.turns[String(td)] : '';
-            var vIn5 = pTurn && pTurn.in5m !== undefined && pTurn.in5m !== null ? pTurn.in5m : '';
-            var vTouch = pTurn && pTurn.touch !== undefined && pTurn.touch !== null ? pTurn.touch : '';
-            var vBreak = pTurn && pTurn.breakout !== undefined && pTurn.breakout !== null ? pTurn.breakout : '';
-            var vOut15 = pTurn && pTurn.out15m !== undefined && pTurn.out15m !== null ? pTurn.out15m : '';
+          var tHtml = '';
+          for (var i = 0; i < turnDists.length; i++) {
+            var td = turnDists[i];
+            var presetT = presetRace && presetRace.timestamps && presetRace.timestamps.turns ? presetRace.timestamps.turns[String(td)] : null;
+            var presetK = presetRace && presetRace.kickCounts && presetRace.kickCounts.turns ? presetRace.kickCounts.turns[String(td)] : null;
 
-            html += '<div class="bg-surface p-2.5 rounded-xl border border-borderDark flex flex-col gap-2">' +
+            var vIn5 = presetT && presetT.in5m !== null && presetT.in5m !== undefined ? presetT.in5m : (prevTurnValues['ts-turn-' + td + '-in5m'] || '');
+            var vTouch = presetT && presetT.touch !== null && presetT.touch !== undefined ? presetT.touch : (prevTurnValues['ts-turn-' + td + '-touch'] || '');
+            var vBreak = presetT && presetT.breakout !== null && presetT.breakout !== undefined ? presetT.breakout : (prevTurnValues['ts-turn-' + td + '-breakout'] || '');
+            var vOut15 = presetT && presetT.out15m !== null && presetT.out15m !== undefined ? presetT.out15m : (prevTurnValues['ts-turn-' + td + '-out15m'] || '');
+            var vKick = presetK !== null && presetK !== undefined ? presetK : (prevTurnKicks['turn-kicks-' + td] || '');
+
+            tHtml += '<div class="bg-surface/80 p-2.5 rounded-xl border border-borderDark flex flex-col gap-2">' +
               '<div class="flex items-center justify-between">' +
-              '<span class="text-xs font-bold text-purple-300">' + td + 'm ターン</span>' +
+              '<span class="text-xs font-bold text-purple-300">' + td + 'm ターン (壁前5m → 壁後15m)</span>' +
               '<div class="flex items-center gap-1.5">' +
-              '<span class="text-[10px] text-zinc-400">' + escapeHtml(kickShort) + '数:</span>' +
-              '<input id="turn-kicks-' + td + '" type="number" min="0" step="1" value="' + escapeHtml(pKick) + '" placeholder="6" oninput="window.recalculateAllMetrics()" class="apple-input w-14 px-2 py-0.5 text-xs font-mono text-right">' +
+              '<label class="text-[10px] text-zinc-400">' + escapeHtml(kickShort) + '数:</label>' +
+              '<input id="turn-kicks-' + td + '" type="number" min="0" step="1" value="' + escapeHtml(vKick) + '" placeholder="6" oninput="window.recalculateAllMetrics()" class="apple-input w-14 px-1.5 py-0.5 text-xs font-mono text-right">' +
               '</div></div>' +
-              '<div class="grid grid-cols-2 gap-1.5">' +
-              '<div class="flex items-center gap-1"><button type="button" onclick="window.stampTurnTimestamp(' + td + ', \'in5m\')" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-bold whitespace-nowrap cursor-pointer">壁前5m</button><input id="ts-turn-' + td + '-in5m" type="number" step="0.01" value="' + escapeHtml(vIn5) + '" placeholder="--" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right"></div>' +
-              '<div class="flex items-center gap-1"><button type="button" onclick="window.stampTurnTimestamp(' + td + ', \'touch\')" class="px-2 py-1 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[10px] font-bold whitespace-nowrap cursor-pointer">壁タッチ</button><input id="ts-turn-' + td + '-touch" type="number" step="0.01" value="' + escapeHtml(vTouch) + '" placeholder="--" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right"></div>' +
-              '<div class="flex items-center gap-1"><button type="button" onclick="window.stampTurnTimestamp(' + td + ', \'breakout\')" class="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-bold whitespace-nowrap cursor-pointer">浮上</button><input id="ts-turn-' + td + '-breakout" type="number" step="0.01" value="' + escapeHtml(vBreak) + '" placeholder="--" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right"></div>' +
-              '<div class="flex items-center gap-1"><button type="button" onclick="window.stampTurnTimestamp(' + td + ', \'out15m\')" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold whitespace-nowrap cursor-pointer">壁後15m</button><input id="ts-turn-' + td + '-out15m" type="number" step="0.01" value="' + escapeHtml(vOut15) + '" placeholder="--" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right"></div>' +
-              '</div></div>';
+              '<div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">' +
+              '<div id="stamp-box-turn-' + td + '-in5m" onclick="window.selectStampStep(\'turn-' + td + '-in5m\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
+              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-in5m\')" class="px-2 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/35 text-purple-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁前5m</button>' +
+              '<input id="ts-turn-' + td + '-in5m" type="number" step="0.01" value="' + escapeHtml(vIn5) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-in5m\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
+              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-in5m\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
+              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-in5m\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
+              '</div>' +
+              '<div id="stamp-box-turn-' + td + '-touch" onclick="window.selectStampStep(\'turn-' + td + '-touch\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
+              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-touch\')" class="px-2 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/35 text-purple-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁タッチ</button>' +
+              '<input id="ts-turn-' + td + '-touch" type="number" step="0.01" value="' + escapeHtml(vTouch) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-touch\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
+              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-touch\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
+              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-touch\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
+              '</div>' +
+              '<div id="stamp-box-turn-' + td + '-breakout" onclick="window.selectStampStep(\'turn-' + td + '-breakout\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
+              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-breakout\')" class="px-2 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">浮き上がり</button>' +
+              '<input id="ts-turn-' + td + '-breakout" type="number" step="0.01" value="' + escapeHtml(vBreak) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-breakout\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
+              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-breakout\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
+              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-breakout\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
+              '</div>' +
+              '<div id="stamp-box-turn-' + td + '-out15m" onclick="window.selectStampStep(\'turn-' + td + '-out15m\')" class="stamp-box flex items-center gap-1 bg-black/50 p-1.5 rounded-lg border border-borderDark cursor-pointer">' +
+              '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'turn-' + td + '-out15m\')" class="px-2 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 text-[11px] font-bold whitespace-nowrap cursor-pointer">壁後15m</button>' +
+              '<input id="ts-turn-' + td + '-out15m" type="number" step="0.01" value="' + escapeHtml(vOut15) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'turn-' + td + '-out15m\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-full px-1.5 py-1 text-xs font-mono text-right">' +
+              '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'turn-' + td + '-out15m\')" class="p-1 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-[11px]"></i></button>' +
+              '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'turn-' + td + '-out15m\')" class="p-1 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-[11px]"></i></button>' +
+              '</div></div></div>';
           }
 
-          // ゴール打刻行
-          var vFinish = preservedData && preservedData.timestamps && preservedData.timestamps.finish !== undefined && preservedData.timestamps.finish !== null ? preservedData.timestamps.finish : '';
-          html += '<div class="flex items-center justify-between gap-2 bg-surface p-2.5 rounded-xl border border-borderDark">' +
-            '<button type="button" onclick="window.stampTimestamp(\'finish\')" class="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold whitespace-nowrap cursor-pointer"><i class="fa-solid fa-flag-checkered mr-1"></i>ゴールタッチ (' + dist + 'm)</button>' +
-            '<input id="ts-finish" type="number" step="0.01" value="' + escapeHtml(vFinish) + '" placeholder="--.--" oninput="window.recalculateAllMetrics()" class="apple-input w-28 px-2.5 py-1 text-xs font-mono text-right">' +
-            '</div>';
+          var vFinish = presetRace && presetRace.timestamps && presetRace.timestamps.finish !== null && presetRace.timestamps.finish !== undefined
+            ? presetRace.timestamps.finish
+            : prevFinishVal;
 
-          turnsContainer.innerHTML = html;
+          tHtml += '<div id="stamp-box-finish" onclick="window.selectStampStep(\'finish\')" class="stamp-box flex items-center justify-between gap-2 bg-surface p-2 rounded-xl border border-borderDark cursor-pointer">' +
+            '<button type="button" onclick="event.stopPropagation(); window.stampTimestamp(\'finish\')" class="px-3 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 text-xs font-bold whitespace-nowrap cursor-pointer">' +
+            '<i class="fa-solid fa-flag-checkered mr-1"></i>ゴールタッチ (' + distance + 'm)</button>' +
+            '<div class="flex items-center gap-1">' +
+            '<input id="ts-finish" type="number" step="0.01" value="' + escapeHtml(vFinish) + '" placeholder="0.00" onclick="event.stopPropagation(); window.selectStampStep(\'finish\')" oninput="window.recalculateAllMetrics(); window.refreshStampVisualStates();" class="apple-input w-24 px-2.5 py-1.5 text-xs sm:text-sm font-mono text-right">' +
+            '<button type="button" onclick="event.stopPropagation(); window.jumpToStamp(\'finish\')" class="p-1.5 text-zinc-400 hover:text-sky-400 cursor-pointer" title="打刻位置へ移動"><i class="fa-solid fa-crosshairs text-xs"></i></button>' +
+            '<button type="button" onclick="event.stopPropagation(); window.clearSingleStamp(\'finish\')" class="p-1.5 text-zinc-500 hover:text-rose-400 cursor-pointer" title="クリア"><i class="fa-solid fa-xmark text-xs"></i></button>' +
+            '</div></div>';
+
+          turnsContainer.innerHTML = tHtml;
         }
 
-        // 公式ラップ入力欄生成（50m刻み、50m種目の場合は25m/50m）
+        // 公式ラップ入力欄構築
         var lapsContainer = document.getElementById('official-laps-container');
         if (lapsContainer) {
-          var lapDists = [];
-          if (dist === 50) {
-            lapDists = [25, 50];
-          } else {
-            for (var ld = 50; ld <= dist; ld += 50) {
-              lapDists.push(ld);
-            }
+          var prevSplits = {};
+          var prevStrokes = {};
+          var oldSplitEls = document.querySelectorAll('[id^="lap-split-"]');
+          for (var sIdx = 0; sIdx < oldSplitEls.length; sIdx++) {
+            prevSplits[oldSplitEls[sIdx].id] = oldSplitEls[sIdx].value;
           }
-          var lapHtml = '';
+          var oldStrokeEls = document.querySelectorAll('[id^="lap-strokes-"]');
+          for (var stIdx = 0; stIdx < oldStrokeEls.length; stIdx++) {
+            prevStrokes[oldStrokeEls[stIdx].id] = oldStrokeEls[stIdx].value;
+          }
+
+          var lapDists = distance === 50 ? [25, 50] : [];
+          if (distance !== 50) {
+            for (var ld = 50; ld <= distance; ld += 50) lapDists.push(ld);
+          }
+
+          var presetLaps = presetRace && Array.isArray(presetRace.officialLaps) ? presetRace.officialLaps : [];
+          var lHtml = '';
           for (var j = 0; j < lapDists.length; j++) {
             var dMark = lapDists[j];
-            var foundLap = null;
-            if (preservedData && Array.isArray(preservedData.officialLaps)) {
-              for (var k = 0; k < preservedData.officialLaps.length; k++) {
-                if (Number(preservedData.officialLaps[k].dist) === dMark) {
-                  foundLap = preservedData.officialLaps[k];
-                  break;
-                }
-              }
-            }
-            var splitVal = foundLap && foundLap.split !== undefined ? foundLap.split : '';
-            var strokeVal = foundLap && foundLap.strokes !== undefined ? foundLap.strokes : '';
-            lapHtml += '<div class="flex items-center justify-between gap-2 bg-black/60 px-3 py-2 rounded-xl border border-borderDark">' +
+            var foundLap = presetLaps.find(function(x) { return Number(x.dist) === dMark; });
+            var spVal = foundLap ? (foundLap.split || '') : (prevSplits['lap-split-' + dMark] || '');
+            var stVal = foundLap && foundLap.strokes !== null && foundLap.strokes !== undefined ? foundLap.strokes : (prevStrokes['lap-strokes-' + dMark] || '');
+
+            lHtml += '<div class="flex items-center justify-between gap-2 bg-black/60 px-3 py-2 rounded-xl border border-borderDark">' +
               '<span class="text-xs font-bold text-zinc-300 w-16">' + dMark + 'm</span>' +
-              '<div class="flex items-center gap-1.5">' +
+              '<div class="flex items-center gap-1.5 flex-1">' +
               '<span class="text-[10px] text-zinc-500">区間タイム:</span>' +
-              '<input id="lap-split-' + dMark + '" type="text" value="' + escapeHtml(splitVal) + '" placeholder="27.50" oninput="window.recalculateAllMetrics()" class="apple-input w-20 px-2 py-1 text-xs font-mono text-right">' +
+              '<input id="lap-split-' + dMark + '" type="text" value="' + escapeHtml(spVal) + '" placeholder="27.50" oninput="window.recalculateAllMetrics()" class="apple-input w-full px-2 py-1 text-xs font-mono text-right">' +
               '</div>' +
               '<div class="flex items-center gap-1.5">' +
-              '<span class="text-[10px] text-zinc-500">ストローク:</span>' +
-              '<input id="lap-strokes-' + dMark + '" type="number" min="0" step="1" value="' + escapeHtml(strokeVal) + '" placeholder="18" oninput="window.recalculateAllMetrics()" class="apple-input w-16 px-2 py-1 text-xs font-mono text-right">' +
+              '<span class="text-[10px] text-zinc-500">Str:</span>' +
+              '<input id="lap-strokes-' + dMark + '" type="number" min="0" step="1" value="' + escapeHtml(stVal) + '" placeholder="18" oninput="window.recalculateAllMetrics()" class="apple-input w-14 px-2 py-1 text-xs font-mono text-right">' +
               '</div></div>';
           }
-          lapsContainer.innerHTML = lapHtml;
+          lapsContainer.innerHTML = lHtml;
         }
 
         window.recalculateAllMetrics();
+        window.refreshCompareRaceDropdown();
+        window.refreshStampVisualStates();
+      };
+
+      // ==================== 連続打刻ステップ管理・ワンタップ打刻・シークジャンプ ====================
+      function getOrderedStampSteps() {
+        var distSel = document.getElementById('input-race-distance');
+        var distance = parseInt(distSel ? distSel.value : '100', 10) || 100;
+        var steps = [
+          { key: 'startGun', label: '【スタート】号砲 (0m)' },
+          { key: 'startEntry', label: '【スタート】入水' },
+          { key: 'startBreakout', label: '【スタート】浮き上がり' },
+          { key: 'start15m', label: '【スタート】15m通過' }
+        ];
+        var turnDists = getTurnDistances(distance);
+        for (var i = 0; i < turnDists.length; i++) {
+          var td = turnDists[i];
+          steps.push({ key: 'turn-' + td + '-in5m', label: '【' + td + 'mターン】壁前5m' });
+          steps.push({ key: 'turn-' + td + '-touch', label: '【' + td + 'mターン】壁タッチ' });
+          steps.push({ key: 'turn-' + td + '-breakout', label: '【' + td + 'mターン】浮き上がり' });
+          steps.push({ key: 'turn-' + td + '-out15m', label: '【' + td + 'mターン】壁後15m' });
+        }
+        steps.push({ key: 'finish', label: '【ゴール】ゴールタッチ (' + distance + 'm)' });
+        return steps;
+      }
+
+      window.refreshStampVisualStates = function() {
+        var steps = getOrderedStampSteps();
+        if (steps.length === 0) return;
+
+        // 現在のactiveStampKeyが有効か検証
+        var activeIdx = -1;
+        for (var i = 0; i < steps.length; i++) {
+          if (steps[i].key === appState.activeStampKey) {
+            activeIdx = i;
+            break;
+          }
+        }
+        if (activeIdx === -1) {
+          activeIdx = 0;
+          appState.activeStampKey = steps[0].key;
+        }
+
+        var stampedCount = 0;
+        for (var j = 0; j < steps.length; j++) {
+          var st = steps[j];
+          var box = document.getElementById('stamp-box-' + st.key);
+          var inp = document.getElementById('ts-' + st.key);
+          var hasVal = inp && inp.value !== '';
+          if (hasVal) stampedCount++;
+
+          if (box) {
+            box.classList.toggle('is-active', st.key === appState.activeStampKey);
+            box.classList.toggle('is-stamped', Boolean(hasVal));
+          }
+        }
+
+        var activeStep = steps[activeIdx];
+        var labelEl = document.getElementById('active-stamp-step-label');
+        var progEl = document.getElementById('active-stamp-progress');
+        var btnTextEl = document.getElementById('btn-quick-stamp-text');
+
+        if (labelEl) labelEl.textContent = '選択中: ' + activeStep.label;
+        if (progEl) progEl.textContent = stampedCount + ' / ' + steps.length + ' 完了';
+        if (btnTextEl) btnTextEl.textContent = activeStep.label + ' を打刻';
+      };
+
+      window.selectStampStep = function(fieldKey) {
+        appState.activeStampKey = fieldKey;
+        window.refreshStampVisualStates();
+      };
+
+      window.moveStampStep = function(delta) {
+        var steps = getOrderedStampSteps();
+        if (steps.length === 0) return;
+        var idx = steps.findIndex(function(s) { return s.key === appState.activeStampKey; });
+        if (idx === -1) idx = 0;
+        var nextIdx = (idx + delta + steps.length) % steps.length;
+        appState.activeStampKey = steps[nextIdx].key;
+        window.refreshStampVisualStates();
+
+        var box = document.getElementById('stamp-box-' + appState.activeStampKey);
+        if (box && box.scrollIntoView) {
+          box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      };
+
+      window.stampActiveStep = function() {
+        var steps = getOrderedStampSteps();
+        if (steps.length === 0) return;
+        var idx = steps.findIndex(function(s) { return s.key === appState.activeStampKey; });
+        if (idx === -1) idx = 0;
+        window.stampTimestamp(steps[idx].key);
       };
 
       window.stampTimestamp = function(fieldKey) {
-        var nowSec = getCurrentActiveSeconds();
-        var el = document.getElementById('ts-' + fieldKey);
-        if (el) {
-          el.value = nowSec.toFixed(2);
-          window.recalculateAllMetrics();
-          window.showToast('打刻しました: ' + nowSec.toFixed(2) + '秒', 'info');
+        var inputEl = document.getElementById('ts-' + fieldKey);
+        if (!inputEl) return;
+
+        var sec = 0;
+        if (appState.mediaSource === 'youtube') {
+          sec = getCurrentStopwatchSec();
+        } else {
+          var video = document.getElementById('local-video-player');
+          sec = video ? (video.currentTime || 0) : 0;
+        }
+
+        inputEl.value = sec.toFixed(2);
+        window.recalculateAllMetrics();
+
+        // 打刻後、自動的に次の未打刻項目（なければ直後の項目）へフォーカスを進める
+        var steps = getOrderedStampSteps();
+        var curIdx = steps.findIndex(function(s) { return s.key === fieldKey; });
+        var stampedLabel = curIdx !== -1 ? steps[curIdx].label : fieldKey;
+
+        if (curIdx !== -1) {
+          var nextTargetKey = null;
+          for (var i = curIdx + 1; i < steps.length; i++) {
+            var nextInp = document.getElementById('ts-' + steps[i].key);
+            if (!nextInp || nextInp.value === '') {
+              nextTargetKey = steps[i].key;
+              break;
+            }
+          }
+          if (!nextTargetKey && curIdx + 1 < steps.length) {
+            nextTargetKey = steps[curIdx + 1].key;
+          }
+          if (nextTargetKey) {
+            appState.activeStampKey = nextTargetKey;
+          }
+        }
+
+        window.refreshStampVisualStates();
+        var activeBox = document.getElementById('stamp-box-' + appState.activeStampKey);
+        if (activeBox && activeBox.scrollIntoView) {
+          activeBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        window.showToast(stampedLabel + ': ' + sec.toFixed(2) + '秒 を打刻しました', 'success');
+      };
+
+      window.jumpToStamp = function(fieldKey) {
+        window.selectStampStep(fieldKey);
+        var inputEl = document.getElementById('ts-' + fieldKey);
+        if (!inputEl || inputEl.value === '') {
+          window.showToast('この項目はまだ打刻されていません', 'warning');
+          return;
+        }
+        var targetSec = parseFloat(inputEl.value);
+        if (isNaN(targetSec) || targetSec < 0) return;
+
+        if (appState.mediaSource === 'local') {
+          var video = document.getElementById('local-video-player');
+          if (!video || !video.src) {
+            window.showToast('ローカル動画が読み込まれていません', 'warning');
+            return;
+          }
+          video.pause();
+          var playBtn = document.getElementById('btn-play-pause');
+          if (playBtn) playBtn.innerHTML = '<i class="fa-solid fa-play mr-1"></i>再生';
+          video.currentTime = targetSec;
+          updateLocalVideoTimeUI();
+          window.showToast(targetSec.toFixed(2) + '秒 のフレームへ移動しました', 'info');
+        } else {
+          window.showToast('記録時刻: ' + targetSec.toFixed(2) + '秒', 'info');
         }
       };
 
-      window.stampTurnTimestamp = function(turnDist, subKey) {
-        var nowSec = getCurrentActiveSeconds();
-        var el = document.getElementById('ts-turn-' + turnDist + '-' + subKey);
-        if (el) {
-          el.value = nowSec.toFixed(2);
-          window.recalculateAllMetrics();
-          window.showToast(turnDist + 'mターン打刻: ' + nowSec.toFixed(2) + '秒', 'info');
+      window.clearSingleStamp = function(fieldKey) {
+        var inputEl = document.getElementById('ts-' + fieldKey);
+        if (inputEl) {
+          inputEl.value = '';
         }
+        appState.activeStampKey = fieldKey;
+        window.recalculateAllMetrics();
+        window.refreshStampVisualStates();
       };
+
+      window.clearAllTimestamps = function() {
+        var steps = getOrderedStampSteps();
+        for (var i = 0; i < steps.length; i++) {
+          var inp = document.getElementById('ts-' + steps[i].key);
+          if (inp) inp.value = '';
+        }
+        appState.activeStampKey = steps.length > 0 ? steps[0].key : 'startGun';
+        window.recalculateAllMetrics();
+        window.refreshStampVisualStates();
+        window.showToast('全打刻タイムをクリアしました', 'info');
+      };
+
+      window.stampTimestamp = function(fieldKey) {
+        var inputEl = document.getElementById('ts-' + fieldKey);
+        if (!inputEl) return;
+
+        var sec = 0;
+        if (appState.mediaSource === 'youtube') {
+          sec = getCurrentStopwatchSec();
+        } else {
+          var video = document.getElementById('local-video-player');
+          sec = video ? (video.currentTime || 0) : 0;
+        }
+
+        inputEl.value = sec.toFixed(2);
+        window.recalculateAllMetrics();
+        window.showToast('打刻しました: ' + sec.toFixed(2) + '秒', 'info');
+      };
+
+      function ensureDistanceOption(distVal) {
+        var distSel = document.getElementById('input-race-distance');
+        if (!distSel) return;
+        var strVal = String(distVal);
+        var exists = false;
+        for (var i = 0; i < distSel.options.length; i++) {
+          if (distSel.options[i].value === strVal) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists && !isNaN(parseInt(strVal, 10))) {
+          var opt = document.createElement('option');
+          opt.value = strVal;
+          opt.textContent = strVal + 'm';
+          distSel.appendChild(opt);
+        }
+      }
+
+      // 距離・ラップ情報から構造化ラップ表（laps, 25m split, 50m split, 100m split）を構築・補完する
+      function normalizeLapTableFromRows(rawRows, totalDistance) {
+        if (!Array.isArray(rawRows) || rawRows.length === 0) return [];
+        var sorted = rawRows.slice().sort(function(a, b) {
+          return Number(a.dist) - Number(b.dist);
+        });
+
+        var result = [];
+        for (var i = 0; i < sorted.length; i++) {
+          var row = sorted[i];
+          var d = Number(row.dist);
+          var cumSec = parseTimeStringToSeconds(row.laps);
+          var prevCumSec = i > 0 ? parseTimeStringToSeconds(sorted[i - 1].laps) : 0;
+
+          var sp25 = row.split25 !== undefined && row.split25 !== null && String(row.split25).trim() !== ''
+            ? String(row.split25).trim()
+            : (!isNaN(cumSec) && (i === 0 || !isNaN(prevCumSec)) ? (cumSec - prevCumSec).toFixed(2) : '');
+
+          var sp50 = row.split50 !== undefined && row.split50 !== null && String(row.split50).trim() !== ''
+            ? String(row.split50).trim()
+            : '';
+
+          // 50mの倍数行でsplit50が空欄の場合、50m前のlapsから自動算出
+          if (!sp50 && d % 50 === 0 && !isNaN(cumSec)) {
+            if (d === 50) {
+              sp50 = cumSec.toFixed(2);
+            } else {
+              var prev50 = sorted.find(function(x) { return Number(x.dist) === d - 50; });
+              if (prev50) {
+                var p50Sec = parseTimeStringToSeconds(prev50.laps);
+                if (!isNaN(p50Sec)) {
+                  sp50 = (cumSec - p50Sec).toFixed(2);
+                }
+              }
+            }
+          }
+
+          var sp100 = row.split100 !== undefined && row.split100 !== null && String(row.split100).trim() !== ''
+            ? String(row.split100).trim()
+            : '';
+
+          if (!sp100 && d % 100 === 0 && !isNaN(cumSec)) {
+            if (d === 100) {
+              sp100 = cumSec.toFixed(2);
+            } else {
+              var prev100 = sorted.find(function(x) { return Number(x.dist) === d - 100; });
+              if (prev100) {
+                var p100Sec = parseTimeStringToSeconds(prev100.laps);
+                if (!isNaN(p100Sec)) {
+                  sp100 = (cumSec - p100Sec).toFixed(2);
+                }
+              }
+            }
+          }
+
+          result.push({
+            dist: d,
+            laps: row.laps !== undefined && row.laps !== null && String(row.laps).trim() !== ''
+              ? String(row.laps).trim()
+              : (!isNaN(cumSec) ? cumSec.toFixed(2) : ''),
+            split25: sp25,
+            split50: sp50,
+            split100: sp100,
+            strokes: row.strokes !== undefined ? row.strokes : null
+          });
+        }
+        return result;
+      }
+
+      // ラップ表HTMLとサマリー指標を生成する共通レンダラー
+      function buildOfficialLapCardHtml(raceObj) {
+        var lapTable = Array.isArray(raceObj.lapTable) && raceObj.lapTable.length > 0
+          ? normalizeLapTableFromRows(raceObj.lapTable, raceObj.distance)
+          : [];
+
+        // lapTableが空でもofficialLapsがある場合は変換して表示
+        if (lapTable.length === 0 && Array.isArray(raceObj.officialLaps) && raceObj.officialLaps.length > 0) {
+          var cum = 0;
+          var tempRows = [];
+          for (var i = 0; i < raceObj.officialLaps.length; i++) {
+            var ol = raceObj.officialLaps[i];
+            var spSec = parseTimeStringToSeconds(ol.split);
+            if (!isNaN(spSec)) {
+              cum += spSec;
+              tempRows.push({
+                dist: ol.dist,
+                laps: cum.toFixed(2),
+                split25: Number(ol.dist) <= 25 ? spSec.toFixed(2) : '',
+                split50: Number(ol.dist) % 50 === 0 ? spSec.toFixed(2) : '',
+                split100: '',
+                strokes: ol.strokes
+              });
+            }
+          }
+          lapTable = normalizeLapTableFromRows(tempRows, raceObj.distance);
+        }
+
+        // 25m splitの最速・最遅特定
+        var min25 = Infinity;
+        var max25 = -Infinity;
+        for (var j = 0; j < lapTable.length; j++) {
+          var v25 = parseTimeStringToSeconds(lapTable[j].split25);
+          if (!isNaN(v25) && v25 > 0) {
+            if (v25 < min25) min25 = v25;
+            if (v25 > max25) max25 = v25;
+          }
+        }
+
+        // 50m splitリスト抽出（前半50m vs 後半50m比較用）
+        var splits50List = [];
+        for (var k = 0; k < lapTable.length; k++) {
+          if (Number(lapTable[k].dist) % 50 === 0 && lapTable[k].split50) {
+            splits50List.push({
+              dist: Number(lapTable[k].dist),
+              valStr: lapTable[k].split50,
+              valSec: parseTimeStringToSeconds(lapTable[k].split50)
+            });
+          }
+        }
+
+        var first50Str = splits50List.length >= 1 ? splits50List[0].valStr + 's' : '--.--';
+        var second50Str = splits50List.length >= 2 ? splits50List[1].valStr + 's' : '--.--';
+        var diff50Badge = '';
+        if (splits50List.length >= 2 && !isNaN(splits50List[0].valSec) && !isNaN(splits50List[1].valSec)) {
+          var diff50 = splits50List[1].valSec - splits50List[0].valSec;
+          var sign50 = diff50 > 0 ? '+' : '';
+          var cls50 = diff50 <= 1.5 ? 'text-emerald-400' : 'text-amber-400';
+          diff50Badge = '<span class="font-mono font-bold ' + cls50 + '">(' + sign50 + diff50.toFixed(2) + 's)</span>';
+        }
+
+        var officialTimeDisp = raceObj.officialTime ? escapeHtml(raceObj.officialTime) + 's' : '--.--';
+        var officialRtDisp = raceObj.reactionTime ? escapeHtml(raceObj.reactionTime) + 's' : '--.--';
+
+        var summaryHtml = '' +
+          '<div class="bg-black/70 p-3 rounded-xl border border-borderDark">' +
+          '<div class="text-[10px] text-zinc-400">大会名 / 日付</div>' +
+          '<div class="text-xs font-bold text-white truncate mt-0.5">' + escapeHtml(raceObj.meetName || '--') + '</div>' +
+          '<div class="text-[10px] font-mono text-zinc-400 mt-0.5">' + escapeHtml(raceObj.date || '--') + '</div>' +
+          '</div>' +
+          '<div class="bg-black/70 p-3 rounded-xl border border-borderDark">' +
+          '<div class="text-[10px] text-zinc-400">公式記録 (Goal)</div>' +
+          '<div class="text-base sm:text-lg font-extrabold font-mono text-white mt-0.5">' + officialTimeDisp + '</div>' +
+          '</div>' +
+          '<div class="bg-black/70 p-3 rounded-xl border border-borderDark">' +
+          '<div class="text-[10px] text-zinc-400">公式リアクション (RT)</div>' +
+          '<div class="text-base sm:text-lg font-extrabold font-mono text-sky-400 mt-0.5">' + officialRtDisp + '</div>' +
+          '</div>' +
+          '<div class="bg-black/70 p-3 rounded-xl border border-borderDark">' +
+          '<div class="text-[10px] text-zinc-400">前半50m / 後半50m</div>' +
+          '<div class="text-xs font-extrabold font-mono text-zinc-100 mt-1">' + first50Str + ' / ' + second50Str + '</div>' +
+          '<div class="text-[10px] mt-0.5">' + (diff50Badge || '<span class="text-zinc-500">前後半差 --</span>') + '</div>' +
+          '</div>';
+
+        var tableHtml = '';
+        if (lapTable.length === 0) {
+          tableHtml = '<div class="p-6 text-center text-xs text-zinc-500">公式ラップデータがありません（CSV読込または左上の公式ラップ入力欄から登録できます）</div>';
+        } else {
+          var rowsHtml = '';
+          for (var r = 0; r < lapTable.length; r++) {
+            var row = lapTable[r];
+            var v25Num = parseTimeStringToSeconds(row.split25);
+            var cell25Class = 'text-zinc-200';
+            var badge25 = '';
+            if (!isNaN(v25Num) && min25 !== max25) {
+              if (Math.abs(v25Num - min25) < 0.001) {
+                cell25Class = 'text-emerald-400 font-extrabold';
+                badge25 = '<span class="ml-1.5 px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-sans">最速</span>';
+              } else if (Math.abs(v25Num - max25) < 0.001) {
+                cell25Class = 'text-rose-400 font-bold';
+                badge25 = '<span class="ml-1.5 px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[9px] font-sans">最遅</span>';
+              }
+            }
+            var is50Mark = Number(row.dist) % 50 === 0;
+            rowsHtml += '<tr class="border-t border-borderDark ' + (is50Mark ? 'bg-surface/40' : '') + '">' +
+              '<td class="py-2 px-3 font-bold ' + (is50Mark ? 'text-sky-300' : 'text-zinc-300') + '">' + row.dist + 'm</td>' +
+              '<td class="py-2 px-3 font-mono font-bold text-white">' + escapeHtml(row.laps || '--') + '</td>' +
+              '<td class="py-2 px-3 font-mono ' + cell25Class + '">' + escapeHtml(row.split25 || '--') + badge25 + '</td>' +
+              '<td class="py-2 px-3 font-mono font-bold text-amber-300">' + escapeHtml(row.split50 || '-') + '</td>' +
+              '<td class="py-2 px-3 font-mono font-bold text-purple-300">' + escapeHtml(row.split100 || '-') + '</td>' +
+              '</tr>';
+          }
+
+          tableHtml = '<table class="w-full text-left border-collapse text-xs">' +
+            '<thead><tr class="bg-surface/70 text-zinc-400">' +
+            '<th class="py-2 px-3 font-semibold">距離</th>' +
+            '<th class="py-2 px-3 font-semibold">通過 (laps)</th>' +
+            '<th class="py-2 px-3 font-semibold">25m split</th>' +
+            '<th class="py-2 px-3 font-semibold">50m split</th>' +
+            '<th class="py-2 px-3 font-semibold">100m split</th>' +
+            '</tr></thead>' +
+            '<tbody>' + rowsHtml + '</tbody></table>';
+        }
+
+        return {
+          summaryHtml: summaryHtml,
+          tableHtml: tableHtml,
+          splits50List: splits50List
+        };
+      }
+
+      // 50m別 純粋スイム統合分析カード（CSV 50m split × 動画スタート15m・ターン区間）のHTML生成
+      function buildPureSwimLegsHtml(raceObj, splits50List) {
+        var totalDist = Number(raceObj.distance) || 100;
+        var numLegs = Math.max(1, Math.floor(totalDist / 50));
+        var m = raceObj.metrics || {};
+        var turnsList = Array.isArray(m.turns) ? m.turns : [];
+
+        // 動画RT（入水 - 号砲）と公式RT比較
+        var ts = raceObj.timestamps || {};
+        var videoEntryDur = (ts.startGun !== null && ts.startGun !== undefined && ts.startEntry !== null && ts.startEntry !== undefined)
+          ? Number((ts.startEntry - ts.startGun).toFixed(2))
+          : null;
+        var offRt = parseTimeStringToSeconds(raceObj.reactionTime);
+        var rtCompareHtml = '';
+        if (!isNaN(offRt)) {
+          var flightTimeHtml = (videoEntryDur !== null && videoEntryDur > offRt)
+            ? ' / 空中時間(入水-RT): <strong class="text-sky-300 font-mono">' + (videoEntryDur - offRt).toFixed(2) + 's</strong>'
+            : '';
+          rtCompareHtml = '<div class="bg-black/60 p-2.5 rounded-xl border border-borderDark text-[11px] text-zinc-300 flex flex-wrap items-center justify-between gap-1">' +
+            '<span>公式RT: <strong class="text-sky-400 font-mono">' + offRt.toFixed(2) + 's</strong>' + flightTimeHtml + '</span>' +
+            (videoEntryDur !== null ? '<span class="text-zinc-400 font-mono">入水時刻: ' + videoEntryDur.toFixed(2) + 's</span>' : '') +
+            '</div>';
+        }
+
+        var cardsHtml = rtCompareHtml;
+
+        if (totalDist < 50) {
+          return cardsHtml + '<div class="text-xs text-zinc-500">50m以上の種目でレッグ別統合分析が表示されます</div>';
+        }
+
+        for (var legIdx = 0; legIdx < numLegs; legIdx++) {
+          var startM = legIdx * 50;
+          var endM = (legIdx + 1) * 50;
+          var sp50Obj = splits50List.find(function(x) { return x.dist === endM; });
+          var legSplitSec = sp50Obj && !isNaN(sp50Obj.valSec) ? sp50Obj.valSec : null;
+
+          // 各50mレッグから差し引く水中・ターン区間距離と時間
+          // 第1レッグ(0-50m): スタート15m + (次ターンがあれば壁前5m分)
+          // 最終レッグ: 前ターンの壁後15m分
+          // 中間レッグ: 前ターン壁後15m + 次ターン壁前5m
+          var deductedDist = 0;
+          var deductedTime = 0;
+          var hasAllVideoMarks = true;
+          var detailDesc = '';
+
+          if (legIdx === 0) {
+            deductedDist += 15;
+            if (m.start15m !== null && m.start15m !== undefined) {
+              deductedTime += Number(m.start15m);
+            } else {
+              hasAllVideoMarks = false;
+            }
+            detailDesc = 'Start 15m';
+
+            if (numLegs > 1) {
+              deductedDist += 5;
+              var tObj0 = ts.turns && ts.turns[String(endM)] ? ts.turns[String(endM)] : null;
+              if (tObj0 && tObj0.in5m !== null && tObj0.touch !== null) {
+                deductedTime += (Number(tObj0.touch) - Number(tObj0.in5m));
+                detailDesc += ' + ' + endM + 'm壁前5m';
+              } else {
+                hasAllVideoMarks = false;
+                detailDesc += ' + ' + endM + 'm壁前5m(未打刻)';
+              }
+            }
+          } else {
+            var prevTurnDist = startM;
+            deductedDist += 15;
+            var tPrev = ts.turns && ts.turns[String(prevTurnDist)] ? ts.turns[String(prevTurnDist)] : null;
+            if (tPrev && tPrev.touch !== null && tPrev.out15m !== null) {
+              deductedTime += (Number(tPrev.out15m) - Number(tPrev.touch));
+              detailDesc = prevTurnDist + 'm壁後15m';
+            } else {
+              hasAllVideoMarks = false;
+              detailDesc = prevTurnDist + 'm壁後15m(未打刻)';
+            }
+
+            if (legIdx < numLegs - 1) {
+              deductedDist += 5;
+              var tNext = ts.turns && ts.turns[String(endM)] ? ts.turns[String(endM)] : null;
+              if (tNext && tNext.in5m !== null && tNext.touch !== null) {
+                deductedTime += (Number(tNext.touch) - Number(tNext.in5m));
+                detailDesc += ' + ' + endM + 'm壁前5m';
+              } else {
+                hasAllVideoMarks = false;
+                detailDesc += ' + ' + endM + 'm壁前5m(未打刻)';
+              }
+            }
+          }
+
+          var pureDist = Math.max(0, 50 - deductedDist);
+          var pureTimeStr = '--.--';
+          var pureSpeedStr = '--.--';
+          if (legSplitSec !== null && hasAllVideoMarks && legSplitSec > deductedTime && pureDist > 0) {
+            var pTime = legSplitSec - deductedTime;
+            pureTimeStr = pTime.toFixed(2) + 's';
+            pureSpeedStr = (pureDist / pTime).toFixed(2) + ' m/s';
+          }
+
+          cardsHtml += '<div class="bg-black/70 p-3 rounded-xl border border-borderDark flex flex-col gap-1.5">' +
+            '<div class="flex items-center justify-between">' +
+            '<span class="text-xs font-bold text-white">' + startM + 'm → ' + endM + 'm <span class="text-[11px] font-normal text-zinc-400">(純粋泳距離 ' + pureDist + 'm)</span></span>' +
+            '<span class="text-xs font-mono text-amber-300 font-bold">50mラップ: ' + (legSplitSec !== null ? legSplitSec.toFixed(2) + 's' : '--.--') + '</span>' +
+            '</div>' +
+            '<div class="flex items-center justify-between text-xs pt-0.5">' +
+            '<span class="text-zinc-400 text-[11px] truncate max-w-[55%]">控除: ' + escapeHtml(detailDesc) + '</span>' +
+            '<div class="flex items-center gap-3 font-mono">' +
+            '<span class="text-emerald-400 font-bold">泳時間: ' + pureTimeStr + '</span>' +
+            '<span class="text-sky-400 font-bold">' + pureSpeedStr + '</span>' +
+            '</div></div></div>';
+        }
+
+        return cardsHtml;
+      }
 
       // ==================== 5. 区間タイム・純粋スイム時間リアルタイム計算 ====================
       function collectCurrentFormData() {
@@ -1680,6 +2368,48 @@
             strokes: stEl && stEl.value !== '' ? parseInt(stEl.value, 10) : null
           });
         }
+
+        // currentLapTable と入力欄の同期
+        var mergedLapRows = [];
+        if (Array.isArray(appState.currentLapTable) && appState.currentLapTable.length > 0) {
+          mergedLapRows = appState.currentLapTable.map(function(row) {
+            var copy = {
+              dist: row.dist,
+              laps: row.laps,
+              split25: row.split25,
+              split50: row.split50,
+              split100: row.split100,
+              strokes: row.strokes
+            };
+            var matchedInput = officialLaps.find(function(ol) { return Number(ol.dist) === Number(row.dist); });
+            if (matchedInput) {
+              if (matchedInput.split) {
+                if (Number(row.dist) === 25) copy.split25 = matchedInput.split;
+                else if (Number(row.dist) % 50 === 0) copy.split50 = matchedInput.split;
+              }
+              if (matchedInput.strokes !== null) copy.strokes = matchedInput.strokes;
+            }
+            return copy;
+          });
+        } else {
+          var cumTracker = 0;
+          for (var mIdx = 0; mIdx < officialLaps.length; mIdx++) {
+            var olItem = officialLaps[mIdx];
+            var sVal = parseTimeStringToSeconds(olItem.split);
+            if (!isNaN(sVal)) {
+              cumTracker += sVal;
+              mergedLapRows.push({
+                dist: olItem.dist,
+                laps: cumTracker.toFixed(2),
+                split25: Number(olItem.dist) === 25 ? sVal.toFixed(2) : '',
+                split50: Number(olItem.dist) % 50 === 0 ? sVal.toFixed(2) : '',
+                split100: '',
+                strokes: olItem.strokes
+              });
+            }
+          }
+        }
+        var normalizedLapTable = normalizeLapTableFromRows(mergedLapRows, distance);
 
         // 指標計算
         var gunBase = startGun !== null ? startGun : 0;
@@ -1768,6 +2498,7 @@
           },
           startBreakoutDist: startBreakoutDist,
           officialLaps: officialLaps,
+          lapTable: normalizedLapTable,
           metrics: {
             start15m: calcStart15m,
             startBreakoutTime: calcStartBreakout,
@@ -1789,6 +2520,7 @@
 
         var elStart15 = document.getElementById('kpi-start-15m');
         var elStartBr = document.getElementById('kpi-start-breakout');
+        var elRtComp = document.getElementById('kpi-rt-compare');
         var elTurn20 = document.getElementById('kpi-turn-20m');
         var elTurnAvg = document.getElementById('kpi-turn-avg');
         var elClean = document.getElementById('kpi-clean-swim');
@@ -1797,11 +2529,41 @@
 
         if (elStart15) elStart15.textContent = m.start15m !== null ? m.start15m.toFixed(2) + 's' : '--.--';
         if (elStartBr) elStartBr.textContent = '浮上: ' + (m.startBreakoutTime !== null ? m.startBreakoutTime.toFixed(2) + 's' : '--.--s');
+        if (elRtComp) {
+          var offRtVal = parseTimeStringToSeconds(data.reactionTime);
+          var ts = data.timestamps || {};
+          var vidEntry = (ts.startGun !== null && ts.startEntry !== null) ? (ts.startEntry - ts.startGun) : null;
+          if (!isNaN(offRtVal) && vidEntry !== null) {
+            elRtComp.textContent = '公式RT:' + offRtVal.toFixed(2) + 's / 入水:' + vidEntry.toFixed(2) + 's';
+          } else if (!isNaN(offRtVal)) {
+            elRtComp.textContent = '公式RT: ' + offRtVal.toFixed(2) + 's';
+          } else {
+            elRtComp.textContent = 'RT比較: --';
+          }
+        }
         if (elTurn20) elTurn20.textContent = m.totalTurn20m !== null ? m.totalTurn20m.toFixed(2) + 's' : '--.--';
         if (elTurnAvg) elTurnAvg.textContent = '平均: ' + (m.avgTurn20m !== null ? m.avgTurn20m.toFixed(2) + 's' : '--.--s');
         if (elClean) elClean.textContent = m.cleanSwimTime !== null ? m.cleanSwimTime.toFixed(2) + 's' : '--.--';
         if (elCleanDist) elCleanDist.textContent = '対象距離: ' + m.cleanSwimDist + 'm';
         if (elCleanSpd) elCleanSpd.textContent = m.cleanSwimSpeed !== null ? m.cleanSwimSpeed.toFixed(2) : '--.--';
+
+        // 公式リザルト＆ラップ詳細カード＋50m別純粋スイム統合カード描画
+        var lapCardData = buildOfficialLapCardHtml(data);
+        var lapSumEl = document.getElementById('analyzer-lap-summary-cards');
+        var lapTblEl = document.getElementById('analyzer-lap-table-wrapper');
+        var lapBadgeEl = document.getElementById('analyzer-lap-meta-badge');
+        var pureLegsEl = document.getElementById('analyzer-pure-swim-legs');
+
+        if (lapSumEl) lapSumEl.innerHTML = lapCardData.summaryHtml;
+        if (lapTblEl) lapTblEl.innerHTML = lapCardData.tableHtml;
+        if (lapBadgeEl) {
+          lapBadgeEl.textContent = data.lapTable.length > 0
+            ? data.lapTable.length + '区間ラップ読込済'
+            : 'CSVまたはラップ入力から自動反映';
+        }
+        if (pureLegsEl) {
+          pureLegsEl.innerHTML = buildPureSwimLegsHtml(data, lapCardData.splits50List);
+        }
 
         // 詳細テーブル描画
         var tbody = document.getElementById('breakdown-table-body');
@@ -2057,6 +2819,7 @@
       window.resetAnalyzerForm = function() {
         appState.loadedRaceId = null;
         appState.preservedYoutube = { url: '', videoId: '', startSec: 0 };
+        appState.currentLapTable = [];
         var editBadge = document.getElementById('editing-badge');
         if (editBadge) editBadge.style.display = 'none';
 
@@ -2076,7 +2839,7 @@
         window.showToast('分析フォームを新規リセットしました', 'info');
       };
 
-      // ==================== 8. 保存データの分析画面への再読込（YouTube自動復元） ====================
+      // ==================== 8. 保存データの分析画面への再読込（YouTube・ラップ自動復元） ====================
       window.loadRaceIntoAnalyzer = function(raceId) {
         var races = getSavedRaces();
         var target = null;
@@ -2092,10 +2855,12 @@
         }
 
         appState.loadedRaceId = target.id;
+        appState.currentLapTable = Array.isArray(target.lapTable) ? target.lapTable.slice() : [];
         var editBadge = document.getElementById('editing-badge');
         if (editBadge) editBadge.style.display = 'inline-block';
 
         // 基本情報復元
+        ensureDistanceOption(target.distance || 100);
         document.getElementById('input-swimmer-name').value = target.swimmerName || '';
         document.getElementById('input-race-date').value = target.date || '';
         document.getElementById('input-race-style').value = target.style || 'Fr';
@@ -2329,8 +3094,12 @@
           for (var n = 0; n < list.length; n++) {
             var item = list[n];
             var hasYt = Boolean(item.youtubeVideoId || item.youtubeUrl);
+            var hasLap = Boolean((Array.isArray(item.lapTable) && item.lapTable.length > 0) || (Array.isArray(item.officialLaps) && item.officialLaps.length > 0));
             var ytBadge = hasYt
               ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 inline-flex items-center gap-1"><i class="fa-brands fa-youtube"></i>YouTube動画あり</span>'
+              : '';
+            var lapBadge = hasLap
+              ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1"><i class="fa-solid fa-stopwatch"></i>ラップあり</span>'
               : '';
             var mObj = item.metrics || {};
             html3 += '<div onclick="window.setHistoryLevel(4, \'' + escapeHtml(appState.selectedSwimmer) + '\', \'' + escapeHtml(appState.selectedEventKey) + '\', \'' + escapeHtml(item.id) + '\')" class="apple-card p-4 sm:p-5 hover:bg-surfaceHover transition cursor-pointer flex flex-wrap items-center justify-between gap-4">' +
@@ -2338,7 +3107,7 @@
               '<div class="flex items-center gap-2.5 flex-wrap">' +
               '<span class="text-xs font-mono text-zinc-400">' + escapeHtml(item.date) + '</span>' +
               '<span class="font-bold text-base text-white">' + escapeHtml(item.meetName) + '</span>' +
-              ytBadge +
+              ytBadge + lapBadge +
               '</div>' +
               '<div class="flex flex-wrap items-center gap-4 text-xs text-zinc-400">' +
               '<span>スタート15m: <strong class="font-mono text-sky-400">' + formatSec(mObj.start15m) + 's</strong></span>' +
@@ -2418,19 +3187,9 @@
           }
 
           // 公式ラップ行
-          var lapsHtml = '';
-          if (Array.isArray(detail.officialLaps) && detail.officialLaps.length > 0) {
-            lapsHtml = '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">';
-            for (var lIdx = 0; lIdx < detail.officialLaps.length; lIdx++) {
-              var lp = detail.officialLaps[lIdx];
-              lapsHtml += '<div class="bg-black/60 p-3 rounded-xl border border-borderDark">' +
-                '<div class="text-[11px] text-zinc-400">' + lp.dist + 'm 区間ラップ</div>' +
-                '<div class="font-mono font-bold text-base text-white mt-0.5">' + escapeHtml(lp.split || '--.--') + '</div>' +
-                '<div class="text-[11px] text-zinc-500 mt-0.5">ストローク: ' + (lp.strokes || '--') + '</div>' +
-                '</div>';
-            }
-            lapsHtml += '</div>';
-          }
+          // 公式リザルト＆ラップ詳細＋50m別純粋スイム統合分析
+          var detailLapCard = buildOfficialLapCardHtml(detail);
+          var detailPureLegsHtml = buildPureSwimLegsHtml(detail, detailLapCard.splits50List);
 
           var html4 = '<div class="apple-card p-5 sm:p-6 flex flex-col gap-5">' +
             '<!-- ヘッダー＆アクションボタン -->' +
@@ -2444,7 +3203,7 @@
             '</div>' +
             '<div class="flex flex-wrap items-center gap-2">' +
             '<button id="btn-reload-with-video" type="button" onclick="window.loadRaceIntoAnalyzer(\'' + escapeHtml(detail.id) + '\')" class="pill-btn px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg cursor-pointer">' +
-            '<i class="fa-solid fa-video"></i><span>動画付きで分析画面に再読込</span>' +
+            '<i class="fa-solid fa-video"></i><span>動画・ラップ付きで分析画面に再読込</span>' +
             '</button>' +
             '<button type="button" onclick="window.promptDeleteRace(\'' + escapeHtml(detail.id) + '\')" class="pill-btn px-3.5 py-2.5 bg-black hover:bg-red-950 border border-borderDark text-xs font-bold text-red-400 cursor-pointer">' +
             '<i class="fa-solid fa-trash-can"></i>' +
@@ -2462,6 +3221,19 @@
             '<div class="bg-black/70 p-3.5 rounded-2xl border border-borderDark"><div class="text-[11px] text-zinc-400">純粋スイム速度</div><div class="text-xl font-extrabold font-mono text-amber-400 mt-1">' + formatSec(dm.cleanSwimSpeed) + ' m/s</div></div>' +
             '</div>' +
 
+            '<!-- 公式リザルト＆ラップ詳細 -->' +
+            '<div class="bg-black/40 p-4 rounded-2xl border border-borderDark flex flex-col gap-3">' +
+            '<div class="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><i class="fa-solid fa-stopwatch-20"></i>公式リザルト＆ラップ詳細</div>' +
+            '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">' + detailLapCard.summaryHtml + '</div>' +
+            '<div class="bg-black/60 rounded-xl border border-borderDark overflow-x-auto">' + detailLapCard.tableHtml + '</div>' +
+            '</div>' +
+
+            '<!-- 50m別 純粋スイム統合分析 -->' +
+            '<div class="bg-black/40 p-4 rounded-2xl border border-borderDark flex flex-col gap-2.5">' +
+            '<div class="text-xs font-bold text-sky-400 flex items-center gap-1.5"><i class="fa-solid fa-layer-group"></i>50m別 純粋スイム統合分析</div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">' + detailPureLegsHtml + '</div>' +
+            '</div>' +
+
             '<!-- 局面詳細テーブル -->' +
             '<div class="bg-black/60 rounded-2xl border border-borderDark overflow-x-auto">' +
             '<table class="w-full text-left border-collapse text-xs">' +
@@ -2470,9 +3242,6 @@
             '<tr class="border-t border-borderDark"><td class="py-2.5 px-3 font-semibold text-sky-400">スタート (15m)</td><td class="py-2.5 px-3 font-mono font-bold text-white">' + formatSec(dm.start15m) + 's</td><td class="py-2.5 px-3 font-mono text-zinc-300">' + formatSec(dm.startBreakoutTime) + 's</td><td class="py-2.5 px-3 font-mono text-zinc-300">' + (detail.kickCounts && detail.kickCounts.start !== null ? detail.kickCounts.start + '回' : '--') + '</td></tr>' +
             turnRowsHtml +
             '</tbody></table></div>' +
-
-            '<!-- 公式ラップ -->' +
-            lapsHtml +
 
             '<!-- メモ -->' +
             (detail.notes ? '<div class="bg-black/60 p-3.5 rounded-xl border border-borderDark text-xs text-zinc-300"><span class="text-zinc-500 font-bold block mb-1">分析メモ:</span>' + escapeHtml(detail.notes) + '</div>' : '') +
@@ -2534,55 +3303,278 @@
         return 'Fr';
       }
 
-      window.handleCsvImport = function(event) {
+      // カンマ/タブ＆ダブルクォーテーション対応1行スプリッタ
+      function splitCsvRow(line, delimiter) {
+        var out = [];
+        var cur = '';
+        var inQuotes = false;
+        for (var i = 0; i < line.length; i++) {
+          var ch = line.charAt(i);
+          if (ch === '"') {
+            if (inQuotes && i + 1 < line.length && line.charAt(i + 1) === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === delimiter && !inQuotes) {
+            out.push(cur.trim());
+            cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        out.push(cur.trim());
+        return out;
+      }
+
+      // 添付スクリーンショット形式（水野 吉晴_100m_バタフライ / name,date,distance,style,event / ,laps,25m split,50m split,100m split）専用パーサー
+      function tryParseStrokeAnalyzerSplitCsv(rawLines, delimiter) {
+        var headerRowIdx = -1;
+        var colMap = { name: -1, date: -1, distance: -1, style: -1, event: -1 };
+
+        for (var i = 0; i < Math.min(rawLines.length, 15); i++) {
+          var cols = splitCsvRow(rawLines[i], delimiter).map(function(c) { return c.toLowerCase(); });
+          var nIdx = cols.indexOf('name');
+          var dIdx = cols.indexOf('distance');
+          var sIdx = cols.indexOf('style');
+          if (nIdx !== -1 && (dIdx !== -1 || sIdx !== -1)) {
+            headerRowIdx = i;
+            colMap.name = nIdx;
+            colMap.date = cols.indexOf('date');
+            colMap.distance = dIdx;
+            colMap.style = sIdx;
+            colMap.event = cols.indexOf('event') !== -1 ? cols.indexOf('event') : cols.indexOf('meet');
+            break;
+          }
+        }
+
+        if (headerRowIdx === -1 || headerRowIdx + 1 >= rawLines.length) {
+          return null;
+        }
+
+        // 先頭タイトル行（例: "水野 吉晴_100m_バタフライ"）からのフォールバック抽出
+        var titleFallback = { name: '', distance: NaN, style: '' };
+        if (headerRowIdx > 0) {
+          var firstRowCells = splitCsvRow(rawLines[0], delimiter);
+          var titleStr = firstRowCells[0] || '';
+          if (titleStr.indexOf('_') !== -1) {
+            var tParts = titleStr.split('_');
+            if (tParts[0]) titleFallback.name = tParts[0].trim();
+            if (tParts[1]) titleFallback.distance = parseInt(tParts[1].replace(/m/gi, ''), 10);
+            if (tParts[2]) titleFallback.style = normalizeStyleCode(tParts[2]);
+          }
+        }
+
+        var valCols = splitCsvRow(rawLines[headerRowIdx + 1], delimiter);
+        var swimmerName = (colMap.name !== -1 && valCols[colMap.name]) ? valCols[colMap.name] : (titleFallback.name || 'CSV選手');
+        var rawDate = (colMap.date !== -1 && valCols[colMap.date]) ? valCols[colMap.date] : new Date().toISOString().slice(0, 10);
+        var normDate = rawDate.replace(/\//g, '-');
+        var rawDist = (colMap.distance !== -1 && valCols[colMap.distance]) ? parseInt(valCols[colMap.distance].replace(/m/gi, ''), 10) : titleFallback.distance;
+        var distance = !isNaN(rawDist) && rawDist > 0 ? rawDist : 100;
+        var style = (colMap.style !== -1 && valCols[colMap.style]) ? normalizeStyleCode(valCols[colMap.style]) : (titleFallback.style || 'Fr');
+        var meetName = (colMap.event !== -1 && valCols[colMap.event]) ? valCols[colMap.event] : '記録会';
+
+        // ラップヘッダー行（,laps,25m split,50m split,100m split）の探索
+        var lapHeaderIdx = -1;
+        var lapColMap = { laps: 1, split25: 2, split50: 3, split100: 4, strokes: -1 };
+        for (var j = headerRowIdx + 2; j < rawLines.length; j++) {
+          var lCols = splitCsvRow(rawLines[j], delimiter).map(function(c) { return c.toLowerCase(); });
+          if (lCols.indexOf('laps') !== -1 || lCols.indexOf('25m split') !== -1 || lCols.indexOf('50m split') !== -1) {
+            lapHeaderIdx = j;
+            var idxLaps = lCols.indexOf('laps');
+            var idx25 = lCols.indexOf('25m split');
+            var idx50 = lCols.indexOf('50m split');
+            var idx100 = lCols.indexOf('100m split');
+            var idxSt = lCols.indexOf('strokes');
+            if (idxLaps !== -1) lapColMap.laps = idxLaps;
+            if (idx25 !== -1) lapColMap.split25 = idx25;
+            if (idx50 !== -1) lapColMap.split50 = idx50;
+            if (idx100 !== -1) lapColMap.split100 = idx100;
+            if (idxSt !== -1) lapColMap.strokes = idxSt;
+            break;
+          }
+        }
+
+        var officialRt = '';
+        var officialTime = '';
+        var youtubeUrl = '';
+        var rawLapRows = [];
+
+        var scanStart = lapHeaderIdx !== -1 ? lapHeaderIdx + 1 : headerRowIdx + 2;
+        for (var k = scanStart; k < rawLines.length; k++) {
+          var rCols = splitCsvRow(rawLines[k], delimiter);
+          var label0 = (rCols[0] || '').trim();
+          var low0 = label0.toLowerCase();
+          if (!label0 && rCols.every(function(c) { return c === ''; })) continue;
+
+          if (label0 === 'リアクションタイム' || low0 === 'reaction time' || low0 === 'rt') {
+            if (rCols[1]) officialRt = rCols[1].trim();
+          } else if (low0 === 'youtube' || low0 === 'url') {
+            if (rCols[1]) youtubeUrl = rCols[1].trim();
+          } else if (/^\d+\s*m$/i.test(label0)) {
+            var distNum = parseInt(label0.replace(/m/gi, ''), 10);
+            var lapsVal = rCols[lapColMap.laps] !== undefined ? rCols[lapColMap.laps].trim() : '';
+            var sp25Val = rCols[lapColMap.split25] !== undefined ? rCols[lapColMap.split25].trim() : '';
+            var sp50Val = rCols[lapColMap.split50] !== undefined ? rCols[lapColMap.split50].trim() : '';
+            var sp100Val = rCols[lapColMap.split100] !== undefined ? rCols[lapColMap.split100].trim() : '';
+            var stVal = (lapColMap.strokes !== -1 && rCols[lapColMap.strokes]) ? parseInt(rCols[lapColMap.strokes], 10) : null;
+
+            rawLapRows.push({
+              dist: distNum,
+              laps: lapsVal,
+              split25: sp25Val,
+              split50: sp50Val,
+              split100: sp100Val,
+              strokes: isNaN(stVal) ? null : stVal
+            });
+
+            if (lapsVal) {
+              officialTime = lapsVal;
+            }
+          }
+        }
+
+        var normalizedTable = normalizeLapTableFromRows(rawLapRows, distance);
+        if (normalizedTable.length > 0 && normalizedTable[normalizedTable.length - 1].laps) {
+          officialTime = normalizedTable[normalizedTable.length - 1].laps;
+        }
+
+        // フォーム入力欄用のofficialLaps（50m種目は25m/50m、100m以上は50m刻み）
+        var formLaps = [];
+        for (var m = 0; m < normalizedTable.length; m++) {
+          var rowItem = normalizedTable[m];
+          if (distance === 50) {
+            formLaps.push({
+              dist: rowItem.dist,
+              split: rowItem.split25 || rowItem.laps,
+              strokes: rowItem.strokes
+            });
+          } else if (rowItem.dist % 50 === 0) {
+            formLaps.push({
+              dist: rowItem.dist,
+              split: rowItem.split50 || '',
+              strokes: rowItem.strokes
+            });
+          }
+        }
+
+        var ytInfo = window.parseYouTubeUrl(youtubeUrl);
+        return {
+          id: 'race_csv_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          swimmerName: swimmerName,
+          date: normDate,
+          meetName: meetName,
+          distance: distance,
+          style: style,
+          officialTime: officialTime,
+          reactionTime: officialRt,
+          youtubeUrl: ytInfo.cleanUrl,
+          youtubeVideoId: ytInfo.videoId,
+          youtubeStartSec: ytInfo.startSec,
+          timestamps: { startGun: 0, startEntry: null, startBreakout: null, start15m: null, turns: {}, finish: null },
+          kickCounts: { start: null, turns: {} },
+          startBreakoutDist: null,
+          officialLaps: formLaps,
+          lapTable: normalizedTable,
+          metrics: {
+            start15m: null,
+            startBreakoutTime: null,
+            turns: [],
+            totalTurn20m: null,
+            cleanSwimTime: null,
+            cleanSwimDist: Math.max(0, distance - 15 - 20 * Math.max(0, Math.floor(distance / 50) - 1)),
+            cleanSwimSpeed: null
+          },
+          notes: '公式ラップCSVインポートデータ',
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      window.handleCsvImport = function(event, openInAnalyzer) {
         var file = event.target.files && event.target.files[0];
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function(e) {
-          var text = e.target.result || '';
-          var importedCount = parseAndImportCsvText(text);
+          var buffer = e.target.result;
+          var text = '';
+          try {
+            var utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+            text = utf8Decoder.decode(buffer);
+          } catch (err) {
+            try {
+              var sjisDecoder = new TextDecoder('shift-jis');
+              text = sjisDecoder.decode(buffer);
+            } catch (err2) {
+              text = new TextDecoder('utf-8').decode(buffer);
+            }
+          }
+          // BOM除去
+          if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1);
+          }
+
+          var importedRaces = parseAndImportCsvText(text);
           event.target.value = '';
-          if (importedCount > 0) {
-            window.renderHistoryBrowser();
-            window.showToast(importedCount + '件のレースデータをCSVから読み込みました', 'success');
+          if (importedRaces.length > 0) {
+            if (openInAnalyzer) {
+              window.loadRaceIntoAnalyzer(importedRaces[0].id);
+              window.showToast('CSVを取り込み、分析画面に反映しました (' + importedRaces[0].swimmerName + ')', 'success');
+            } else {
+              window.renderHistoryBrowser();
+              window.showToast(importedRaces.length + '件のレースデータをCSVから読み込みました', 'success');
+            }
           } else {
             window.showToast('CSVから有効なデータを読み込めませんでした', 'error');
           }
         };
-        reader.readAsText(file, 'UTF-8');
+        reader.readAsArrayBuffer(file);
       };
 
       function parseAndImportCsvText(csvText) {
         var nl = String.fromCharCode(10);
         var cr = String.fromCharCode(13);
         var rawLines = csvText.split(nl).map(function(line) {
-          return line.split(cr).join('').trim();
+          return line.split(cr).join('');
         }).filter(function(line) {
-          return line.length > 0;
+          return line.trim().length > 0;
         });
 
-        if (rawLines.length === 0) return 0;
+        if (rawLines.length === 0) return [];
+
+        // 区切り文字自動判別（タブ vs カンマ）
+        var sampleText = rawLines.slice(0, 6).join(' ');
+        var tabCount = (sampleText.match(/\t/g) || []).length;
+        var commaCount = (sampleText.match(/,/g) || []).length;
+        var delimiter = tabCount > commaCount ? '\t' : ',';
 
         var races = getSavedRaces();
-        var addedCount = 0;
+        var importedList = [];
 
-        // 形式判別: 既存ストローク分析サイト形式（name, date, distance, style, event, laps, split などの縦ブロック）
-        var isStrokeSiteFormat = false;
+        // 1. スクリーンショット形式（横並びメタデータ + laps/25m split/50m split/100m split）の優先パース
+        var structuredRace = tryParseStrokeAnalyzerSplitCsv(rawLines, delimiter);
+        if (structuredRace) {
+          races.unshift(structuredRace);
+          setSavedRaces(races);
+          return [structuredRace];
+        }
+
+        // 2. 縦並びキーバリュー形式のフォールバック
+        var isVerticalFormat = false;
         for (var i = 0; i < Math.min(rawLines.length, 15); i++) {
-          var low = rawLines[i].toLowerCase();
-          if (low.indexOf('name,') === 0 || low.indexOf('style,') === 0 || low.indexOf('laps') === 0 || low.indexOf('50m split') !== -1 || low.indexOf('25m split') !== -1) {
-            isStrokeSiteFormat = true;
+          var low = rawLines[i].trim().toLowerCase();
+          if (low.indexOf('name' + delimiter) === 0 || low.indexOf('style' + delimiter) === 0) {
+            isVerticalFormat = true;
             break;
           }
         }
 
-        if (isStrokeSiteFormat) {
-          // 既存ストローク分析サイト出力CSVのブロック解析（複数レース連結にも対応）
+        if (isVerticalFormat) {
           var blocks = [];
           var currentBlock = [];
           for (var b = 0; b < rawLines.length; b++) {
-            var line = rawLines[b];
-            if (line.toLowerCase().indexOf('name,') === 0 && currentBlock.length > 3) {
+            var line = rawLines[b].trim();
+            if (line.toLowerCase().indexOf('name' + delimiter) === 0 && currentBlock.length > 3) {
               blocks.push(currentBlock);
               currentBlock = [line];
             } else {
@@ -2606,14 +3598,14 @@
             };
 
             for (var li = 0; li < bLines.length; li++) {
-              var cols = bLines[li].split(',').map(function(c) { return c.trim(); });
+              var cols = splitCsvRow(bLines[li], delimiter);
               var k0 = (cols[0] || '').toLowerCase();
               if (k0 === 'name' && cols[1]) meta.swimmerName = cols[1];
               else if (k0 === 'date' && cols[1]) meta.date = cols[1].replace(/\//g, '-');
               else if (k0 === 'distance' && cols[1]) meta.distance = parseInt(cols[1], 10) || 100;
               else if (k0 === 'style' && cols[1]) meta.style = normalizeStyleCode(cols[1]);
               else if ((k0 === 'event' || k0 === 'meet' || k0 === 'competition') && cols[1]) meta.meetName = cols[1];
-              else if ((k0 === 'rt' || k0 === 'reaction' || k0 === 'reaction time') && cols[1]) meta.reactionTime = cols[1];
+              else if ((k0 === 'rt' || k0 === 'reaction' || k0 === 'reaction time' || cols[0] === 'リアクションタイム') && cols[1]) meta.reactionTime = cols[1];
               else if ((k0 === 'total' || k0 === 'time' || k0 === 'goal') && cols[1]) meta.officialTime = cols[1];
               else if ((k0 === 'youtube' || k0 === 'url') && cols[1]) meta.youtubeUrl = cols[1];
               else if (/^\d+m?$/.test(k0) && cols[1]) {
@@ -2627,7 +3619,7 @@
 
             if (meta.laps.length > 0 || meta.officialTime) {
               var ytParsed = window.parseYouTubeUrl(meta.youtubeUrl);
-              races.unshift({
+              var newObj = {
                 id: 'race_csv_' + Date.now() + '_' + bk,
                 swimmerName: meta.swimmerName,
                 date: meta.date,
@@ -2643,18 +3635,20 @@
                 kickCounts: { start: null, turns: {} },
                 startBreakoutDist: null,
                 officialLaps: meta.laps,
+                lapTable: [],
                 metrics: { start15m: null, startBreakoutTime: null, turns: [], totalTurn20m: null, cleanSwimTime: null, cleanSwimDist: Math.max(0, meta.distance - 15 - 20 * Math.max(0, meta.distance / 50 - 1)), cleanSwimSpeed: null },
                 notes: 'CSV一括インポートデータ',
                 updatedAt: new Date().toISOString()
-              });
-              addedCount++;
+              };
+              races.unshift(newObj);
+              importedList.push(newObj);
             }
           }
         } else {
-          // 汎用CSV形式（1行目ヘッダー、2行目以降データ）
-          var headers = rawLines[0].split(',').map(function(h) { return h.trim().toLowerCase(); });
+          // 3. 汎用CSV形式（1行目ヘッダー、2行目以降データ）
+          var headers = splitCsvRow(rawLines[0], delimiter).map(function(h) { return h.toLowerCase(); });
           for (var rIdx = 1; rIdx < rawLines.length; rIdx++) {
-            var rowCols = rawLines[rIdx].split(',').map(function(c) { return c.trim(); });
+            var rowCols = splitCsvRow(rawLines[rIdx], delimiter);
             if (rowCols.length < 2) continue;
             var obj = {};
             for (var cIdx = 0; cIdx < headers.length; cIdx++) {
@@ -2662,7 +3656,7 @@
             }
             var ytInfo = window.parseYouTubeUrl(obj.youtube || obj.youtubeurl || obj.url || '');
             var distVal = parseInt(obj.distance || obj['距離'] || '100', 10) || 100;
-            races.unshift({
+            var genObj = {
               id: 'race_csv_' + Date.now() + '_' + rIdx,
               swimmerName: obj.name || obj.swimmer || obj['選手名'] || 'CSV選手',
               date: (obj.date || obj['日付'] || new Date().toISOString().slice(0, 10)).replace(/\//g, '-'),
@@ -2678,41 +3672,43 @@
               kickCounts: { start: null, turns: {} },
               startBreakoutDist: null,
               officialLaps: [],
+              lapTable: [],
               metrics: { start15m: null, startBreakoutTime: null, turns: [], totalTurn20m: null, cleanSwimTime: null, cleanSwimDist: Math.max(0, distVal - 15 - 20 * Math.max(0, distVal / 50 - 1)), cleanSwimSpeed: null },
               notes: obj.notes || obj['メモ'] || '汎用CSV読込',
               updatedAt: new Date().toISOString()
-            });
-            addedCount++;
+            };
+            races.unshift(genObj);
+            importedList.push(genObj);
           }
         }
 
-        if (addedCount > 0) {
+        if (importedList.length > 0) {
           setSavedRaces(races);
         }
-        return addedCount;
+        return importedList;
       }
 
       window.downloadSampleCsv = function() {
         var nl = String.fromCharCode(10);
+        var bom = '\uFEFF';
         var lines = [
-          'Stroke Analysis Export',
-          'name,東大 選手B',
-          'date,2026-11-10',
-          'distance,100',
-          'style,Ba',
-          'event,秋季記録会',
-          'reaction time,0.59',
-          'laps,50m split,strokes',
-          '50m,27.40,18',
-          '100m,56.85,20',
-          'youtube,https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+          '水野 吉晴_100m_バタフライ,,,,',
+          'name,date,distance,style,event',
+          '水野 吉晴,1970/01/01,100,バタフライ,26東スイ招待予選',
+          ',,,,',
+          ',laps,25m split,50m split,100m split',
+          'リアクションタイム,0.65,,,',
+          '25m,11.62,11.62,,',
+          '50m,26.28,14.66,26.28,',
+          '75m,40.45,14.17,,',
+          '100m,55.96,15.51,29.68,55.96'
         ];
-        var csvContent = lines.join(nl);
+        var csvContent = bom + lines.join(nl);
         var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = 'todai_swim_sample.csv';
+        a.download = '水野 吉晴_100m_バタフライ.csv';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -2803,6 +3799,39 @@
         initViewportInteractions();
         window.refreshCompareRaceDropdown();
         window.renderComparisonCharts();
+
+        // PC向けキーボードショートカット（分析画面表示中かつ入力欄フォーカス外）
+        document.addEventListener('keydown', function(e) {
+          if (appState.currentScreen !== 'screen-analyze') return;
+          var tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+          var loadModal = document.getElementById('modal-load-race');
+          var delModal = document.getElementById('modal-confirm-delete');
+          if ((loadModal && loadModal.style.display === 'flex') || (delModal && delModal.style.display === 'flex')) {
+            return;
+          }
+
+          if (e.code === 'Space') {
+            e.preventDefault();
+            window.togglePlayPause();
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            window.stepFrame(e.shiftKey ? -5 : -1);
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            window.stepFrame(e.shiftKey ? 5 : 1);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            window.stampActiveStep();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            window.moveStampStep(-1);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            window.moveStampStep(1);
+          }
+        });
       });
     })();
   </script>
