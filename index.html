@@ -3,27 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SwimStart &amp; Turn Analyzer Pro | 競泳スタート・ターン特化型レース分析</title>
+  <title>SwimStart &amp; Turn Analyzer | 競泳スタート・ターン特化型レース分析</title>
   <style>
     /* ==========================================================================
-       1. デザインシステム＆カラー変数（ダークネイビー＆アクアブルー基調）
+       1. デザインシステム＆カラー変数（ピュアブラック × ダークグレー × シアン）
        ========================================================================== */
     :root {
-      --bg-base: #060c18;
-      --bg-surface: #0d1629;
-      --bg-panel: #13203b;
-      --bg-card: #182747;
-      --bg-hover: #1f335c;
-      --border-subtle: #243861;
-      --border-strong: #37538c;
+      --bg-base: #000000;
+      --bg-surface: #0c0c0e;
+      --bg-panel: #161618;
+      --bg-card: #1c1c1f;
+      --bg-hover: #242428;
+      --border-subtle: #2c2c2e;
+      --border-strong: #3d3d42;
 
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
+      --text-primary: #ffffff;
+      --text-secondary: #8e8e93;
+      --text-muted: #636366;
 
       --accent-aqua: #06b6d4;
       --accent-aqua-light: #38bdf8;
-      --accent-aqua-glow: rgba(6, 182, 212, 0.28);
+      --accent-aqua-glow: rgba(6, 182, 212, 0.25);
       --accent-emerald: #10b981;
       --accent-amber: #f59e0b;
       --accent-rose: #f43f5e;
@@ -32,19 +32,20 @@
       /* 積み上げ横棒グラフの区間別カラー */
       --seg-rt: #8b5cf6;       /* RT / 壁滞在 */
       --seg-air: #06b6d4;      /* 空中 / 壁前5m (IN 5m) */
-      --seg-uw: #10b981;       /* 水中ドルフィン / プルアウト */
+      --seg-uw: #10b981;       /* 水中バサロ・ドルフィン / プルアウト */
       --seg-swim: #f59e0b;     /* 浮き上がり後スイム */
 
-      --radius-sm: 6px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 9999px;
 
       --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
     /* ==========================================================================
-       2. ベースレイアウト（高さ潰れ防止の安全な設計）
+       2. ベースレイアウト
        ========================================================================== */
     * {
       box-sizing: border-box;
@@ -59,6 +60,7 @@
       font-family: var(--font-sans);
       line-height: 1.45;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
@@ -83,11 +85,11 @@
       cursor: pointer;
       border: none;
       background: none;
-      transition: all 0.14s ease;
+      transition: all 0.15s ease;
     }
 
     button:disabled {
-      opacity: 0.45;
+      opacity: 0.4;
       cursor: not-allowed;
     }
 
@@ -96,21 +98,20 @@
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: var(--bg-surface);
+      background: var(--bg-base);
     }
     ::-webkit-scrollbar-thumb {
       background: var(--border-strong);
       border-radius: 3px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
+      background: var(--text-secondary);
     }
 
-    /* 万一のJSエラー表示用バナー */
     .fatal-error-banner {
       display: none;
-      background-color: #7f1d1d;
-      border-bottom: 2px solid #f43f5e;
+      background-color: #450a0a;
+      border-bottom: 1px solid var(--accent-rose);
       color: #fecdd3;
       padding: 12px 16px;
       font-size: 13px;
@@ -121,8 +122,547 @@
       display: block;
     }
 
+    /* 画面（ビュー）切替制御 */
+    .app-view {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100%;
+    }
+    .app-view.active {
+      display: flex;
+    }
+
     /* ==========================================================================
-       3. 上部メタデータ＆ツールバー
+       3. トップメニュー画面（Todai Swim App スタイル）
+       ========================================================================== */
+    .home-view {
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      background-color: var(--bg-base);
+    }
+
+    .home-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
+    }
+
+    .home-hero {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .home-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      color: var(--accent-aqua-light);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .home-title {
+      font-size: clamp(28px, 6vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.15;
+    }
+
+    .home-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .home-menu-buttons {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .pill-menu-btn {
+      width: 100%;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 20px 28px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .pill-menu-btn:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--accent-aqua);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(6, 182, 212, 0.18);
+    }
+
+    .pill-menu-btn:active {
+      transform: translateY(0);
+    }
+
+    .menu-count-badge {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-aqua-light);
+      background-color: rgba(6, 182, 212, 0.14);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      padding: 2px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    .home-footer-utils {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+      width: 100%;
+    }
+
+    .subtle-util-btn {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 6px 14px;
+    }
+    .subtle-util-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+      background-color: var(--bg-panel);
+    }
+
+    /* ==========================================================================
+       4. 共通ボタン・入力部品
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-aqua), #0284c7);
+      color: #ffffff;
+      box-shadow: 0 2px 10px var(--accent-aqua-glow);
+    }
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-emerald {
+      background-color: rgba(16, 185, 129, 0.14);
+      border: 1px solid var(--accent-emerald);
+      color: #34d399;
+    }
+    .btn-emerald:hover {
+      background-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-amber {
+      background-color: rgba(245, 158, 11, 0.14);
+      border: 1px solid var(--accent-amber);
+      color: #fbbf24;
+    }
+    .btn-amber:hover {
+      background-color: rgba(245, 158, 11, 0.24);
+    }
+
+    .btn-danger {
+      background-color: rgba(244, 63, 94, 0.14);
+      border: 1px solid var(--accent-rose);
+      color: #fda4af;
+    }
+    .btn-danger:hover {
+      background-color: rgba(244, 63, 94, 0.25);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    /* ==========================================================================
+       5. 「分析したレースを見る」4階層ドリルダウンUI
+       ========================================================================== */
+    .results-topbar {
+      background-color: var(--bg-base);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .results-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 6px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .nav-back-btn:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--accent-aqua);
+    }
+
+    .breadcrumb-trail {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
+
+    .breadcrumb-link {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .breadcrumb-link:hover {
+      color: var(--accent-aqua-light);
+      text-decoration: underline;
+    }
+
+    .results-main-container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 20px 60px 20px;
+      flex: 1;
+    }
+
+    .results-main-container.is-detail-wide {
+      max-width: 1360px;
+    }
+
+    .drilldown-header {
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .drilldown-title {
+      font-size: clamp(24px, 4.5vw, 32px);
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .drilldown-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .drilldown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* 添付スクリーンショット再現：横長角丸ダークカード */
+    .drilldown-card {
+      width: 100%;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      text-align: left;
+      transition: background-color 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
+    }
+
+    .drilldown-card:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-strong);
+      transform: translateX(2px);
+    }
+
+    .drilldown-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .drilldown-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .drilldown-card-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .drilldown-arrow {
+      color: var(--text-secondary);
+      font-size: 13px;
+      flex-shrink: 0;
+      transition: transform 0.14s ease, color 0.14s ease;
+    }
+
+    .drilldown-card:hover .drilldown-arrow {
+      color: var(--accent-aqua-light);
+      transform: translateX(3px);
+    }
+
+    .yt-linked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: rgba(244, 63, 94, 0.16);
+      border: 1px solid rgba(244, 63, 94, 0.45);
+      color: #fda4af;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .athlete-search-wrap {
+      margin-bottom: 16px;
+    }
+
+    .athlete-search-input {
+      width: 100%;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+    }
+    .athlete-search-input:focus {
+      border-color: var(--accent-aqua);
+    }
+
+    .empty-state-box {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 40px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* 第4階層：詳細ビュー */
+    .detail-hero-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .detail-yt-panel {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent-rose);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .detail-yt-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .detail-yt-url-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detail-yt-url-code {
+      flex: 1;
+      min-width: 220px;
+      background-color: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #67e8f9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-inline-player-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 460px;
+      background-color: #050507;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .detail-inline-player-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .detail-hero-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .detail-event-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent-aqua-light);
+    }
+
+    .detail-meet-heading {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .detail-stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .detail-stats-row strong {
+      color: var(--text-primary);
+    }
+
+    .detail-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .detail-compare-bar {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .detail-compare-bar select {
+      background-color: var(--bg-base);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      min-width: 250px;
+    }
+
+    /* ==========================================================================
+       6. 「レース分析をする」上部メタデータ＆ツールバー
        ========================================================================== */
     .app-header {
       background-color: var(--bg-surface);
@@ -134,7 +674,6 @@
       position: sticky;
       top: 0;
       z-index: 40;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
     }
 
     .header-top-row {
@@ -151,30 +690,10 @@
       gap: 10px;
     }
 
-    .brand-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, var(--accent-aqua), #0284c7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: 0 0 14px var(--accent-aqua-glow);
-      flex-shrink: 0;
-    }
-
     .brand-title {
       font-size: 15px;
       font-weight: 800;
-      letter-spacing: 0.02em;
-      line-height: 1.2;
-    }
-
-    .brand-sub {
-      font-size: 11px;
-      color: var(--accent-aqua-light);
-      font-weight: 600;
+      letter-spacing: 0.01em;
     }
 
     .header-actions {
@@ -190,7 +709,7 @@
       align-items: center;
       gap: 7px;
       padding-top: 7px;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-top: 1px solid var(--border-subtle);
     }
 
     .field-pill {
@@ -227,73 +746,20 @@
       border-color: var(--accent-aqua);
     }
 
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      padding: 6px 11px;
-      border-radius: var(--radius-sm);
-      font-size: 11.5px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-aqua), #0284c7);
-      color: #fff;
-      box-shadow: 0 2px 10px var(--accent-aqua-glow);
-    }
-    .btn-primary:hover {
-      filter: brightness(1.1);
-    }
-
-    .btn-emerald {
-      background-color: rgba(16, 185, 129, 0.16);
-      border: 1px solid var(--accent-emerald);
-      color: #34d399;
-    }
-    .btn-emerald:hover {
-      background-color: rgba(16, 185, 129, 0.28);
-    }
-
-    .btn-amber {
-      background-color: rgba(245, 158, 11, 0.15);
-      border: 1px solid var(--accent-amber);
-      color: #fbbf24;
-    }
-    .btn-amber:hover {
-      background-color: rgba(245, 158, 11, 0.26);
-    }
-
-    .btn-secondary {
-      background-color: var(--bg-panel);
-      border: 1px solid var(--border-strong);
-      color: var(--text-primary);
-    }
-    .btn-secondary:hover {
-      background-color: var(--bg-hover);
-      border-color: var(--accent-aqua);
-    }
-
     .csv-count-pill {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background-color: rgba(6, 182, 212, 0.25);
+      background-color: rgba(6, 182, 212, 0.22);
       color: #67e8f9;
-      border-radius: 999px;
+      border-radius: var(--radius-pill);
       padding: 0 6px;
       font-size: 10.5px;
       font-weight: 800;
     }
 
-    .file-input-hidden {
-      display: none;
-    }
-
     /* ==========================================================================
-       4. メイン2カラムコックピット（左62%：動画プレイヤー / 右38%：打刻リスト）
+       7. 分析画面メイン2カラムコックピット（左62%：動画 / 右38%：打刻）
        ========================================================================== */
     .cockpit-grid {
       display: grid;
@@ -317,19 +783,18 @@
     }
 
     .panel {
-      background-color: var(--bg-surface);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       min-height: 520px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     .panel-header {
       padding: 9px 13px;
-      background-color: var(--bg-panel);
+      background-color: var(--bg-surface);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -365,11 +830,11 @@
     }
 
     /* ==========================================================================
-       5. 左カラム：動画プレイヤー（ローカル動画 ＆ YouTube引用切替タブ）
+       8. 左カラム：動画プレイヤー（ローカル動画 ＆ YouTube引用）
        ========================================================================== */
     .source-tabs-bar {
       padding: 7px 12px;
-      background-color: rgba(6, 12, 24, 0.72);
+      background-color: var(--bg-base);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       flex-wrap: wrap;
@@ -380,8 +845,8 @@
 
     .source-tab-group {
       display: inline-flex;
-      background-color: var(--bg-base);
-      border: 1px solid var(--border-strong);
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
       padding: 2px;
       flex-shrink: 0;
@@ -391,18 +856,18 @@
       padding: 4px 10px;
       font-size: 11px;
       font-weight: 700;
-      border-radius: 4px;
+      border-radius: 6px;
       color: var(--text-secondary);
     }
 
     .source-tab-btn.active {
       background-color: var(--accent-aqua);
-      color: #04101d;
+      color: #000000;
     }
 
     .source-tab-btn.active.yt-active {
       background-color: var(--accent-rose);
-      color: #fff;
+      color: #ffffff;
     }
 
     .source-pane {
@@ -419,7 +884,7 @@
 
     .yt-url-input {
       flex: 1;
-      background-color: var(--bg-base);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       padding: 5px 9px;
@@ -443,8 +908,8 @@
       font-size: 11px;
       font-weight: 700;
       padding: 3px 8px;
-      border-radius: 4px;
-      background-color: var(--bg-surface);
+      border-radius: 6px;
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
       display: inline-flex;
@@ -473,15 +938,14 @@
       background-color: rgba(6, 182, 212, 0.14);
       border: 1px solid rgba(6, 182, 212, 0.35);
       padding: 2px 7px;
-      border-radius: 4px;
+      border-radius: 6px;
     }
 
-    /* 動画ビューポート（ズーム＆パン＆基準線） */
     .video-viewport {
       position: relative;
       flex: 1;
       min-height: 300px;
-      background: radial-gradient(circle at center, #11203d 0%, #050914 100%);
+      background-color: #050507;
       overflow: hidden;
       cursor: grab;
       user-select: none;
@@ -531,7 +995,6 @@
       border: none;
     }
 
-    /* YouTubeズーム・パン操作用の透明シールド */
     .yt-interaction-shield {
       position: absolute;
       inset: 0;
@@ -544,12 +1007,11 @@
       pointer-events: auto;
     }
 
-    /* YouTubeエラー・file://環境診断バナー */
     .yt-diagnostic-banner {
       position: absolute;
       inset: 14px;
       z-index: 25;
-      background: rgba(13, 22, 41, 0.96);
+      background: rgba(12, 12, 14, 0.96);
       backdrop-filter: blur(8px);
       border: 1px solid var(--accent-rose);
       border-radius: var(--radius-md);
@@ -558,7 +1020,6 @@
       flex-direction: column;
       justify-content: center;
       gap: 10px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
       overflow-y: auto;
     }
     .yt-diagnostic-banner.visible {
@@ -583,7 +1044,7 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 6px;
-      background-color: var(--bg-base);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       padding: 6px 10px;
@@ -592,7 +1053,6 @@
       color: #67e8f9;
     }
 
-    /* 未読込時プレースホルダー */
     .video-placeholder {
       text-align: center;
       padding: 24px;
@@ -615,7 +1075,6 @@
       line-height: 1.6;
     }
 
-    /* 赤い垂直基準ライン */
     .guide-line {
       position: absolute;
       top: 0;
@@ -650,20 +1109,19 @@
       position: absolute;
       bottom: 8px;
       left: 10px;
-      background: rgba(6, 12, 24, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.78);
+      border: 1px solid var(--border-subtle);
       padding: 3px 8px;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 10.5px;
       color: var(--text-secondary);
       pointer-events: none;
       z-index: 12;
     }
 
-    /* プレイヤー下部トランスポートコントロール */
     .player-controls {
       padding: 9px 12px;
-      background-color: var(--bg-panel);
+      background-color: var(--bg-surface);
       border-top: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
@@ -717,8 +1175,8 @@
     }
 
     .btn-step {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-strong);
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
       color: var(--text-primary);
       padding: 5px 8px;
       border-radius: var(--radius-sm);
@@ -759,7 +1217,7 @@
     }
     .speed-btn.active {
       background-color: var(--accent-aqua);
-      color: #04101d;
+      color: #000000;
     }
 
     .shortcut-bar {
@@ -774,7 +1232,7 @@
       display: inline-block;
       background-color: var(--bg-base);
       border: 1px solid var(--border-strong);
-      border-radius: 3px;
+      border-radius: 4px;
       padding: 0 5px;
       margin-right: 3px;
       font-family: var(--font-mono);
@@ -783,7 +1241,7 @@
     }
 
     /* ==========================================================================
-       6. 右カラム：種目・距離連動のガイド付き打刻リスト
+       9. 右カラム：種目・距離連動のガイド付き打刻リスト
        ========================================================================== */
     .btn-stamp-now {
       background: linear-gradient(135deg, var(--accent-emerald), #059669);
@@ -792,7 +1250,6 @@
       font-weight: 800;
       padding: 5px 11px;
       border-radius: var(--radius-sm);
-      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
     }
     .btn-stamp-now:hover {
       filter: brightness(1.1);
@@ -816,7 +1273,7 @@
 
     .phase-group-header {
       padding: 7px 11px;
-      background-color: rgba(6, 12, 24, 0.55);
+      background-color: var(--bg-surface);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -860,8 +1317,8 @@
       font-size: 10.5px;
       font-weight: 700;
       color: #fbbf24;
-      background-color: rgba(245, 158, 11, 0.16);
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background-color: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.35);
       padding: 2px 8px;
       border-radius: 4px;
     }
@@ -877,9 +1334,8 @@
       justify-content: space-between;
       gap: 8px;
       padding: 7px 11px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-subtle);
       cursor: pointer;
-      transition: background-color 0.12s ease;
     }
     .stamp-row:last-child {
       border-bottom: none;
@@ -888,7 +1344,7 @@
       background-color: var(--bg-hover);
     }
     .stamp-row.is-active {
-      background-color: rgba(6, 182, 212, 0.16);
+      background-color: rgba(6, 182, 212, 0.14);
       box-shadow: inset 3px 0 0 var(--accent-aqua);
     }
 
@@ -953,9 +1409,6 @@
       border-color: rgba(6, 182, 212, 0.45);
       background-color: rgba(6, 182, 212, 0.1);
     }
-    .stamp-row.is-recorded .stamp-time-btn:hover {
-      background-color: rgba(6, 182, 212, 0.25);
-    }
 
     .btn-row-stamp {
       padding: 3px 8px;
@@ -969,7 +1422,7 @@
     .btn-row-stamp:hover {
       background-color: var(--accent-aqua);
       border-color: var(--accent-aqua);
-      color: #04101d;
+      color: #000000;
     }
 
     .btn-row-clear {
@@ -984,13 +1437,13 @@
     }
 
     /* ==========================================================================
-       7. 下部：分析結果ダッシュボード＆過去レース2段グラフ比較
+       10. 分析ダッシュボード（分析画面下部 ＆ 詳細閲覧ビュー共通）
        ========================================================================== */
     .dashboard-section {
       padding: 16px;
       max-width: 1860px;
       width: 100%;
-      margin: 0 auto 24px auto;
+      margin: 0 auto 28px auto;
     }
 
     .dashboard-toolbar {
@@ -1001,7 +1454,7 @@
       gap: 10px;
       margin-bottom: 12px;
       padding: 10px 14px;
-      background-color: var(--bg-surface);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
     }
@@ -1068,13 +1521,12 @@
       border-radius: 3px;
     }
 
-    /* CSV公式リザルトサマリーバナー */
     .csv-summary-panel {
-      background: linear-gradient(135deg, rgba(19, 32, 59, 0.96), rgba(13, 22, 41, 0.98));
-      border: 1px solid var(--border-strong);
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
       border-left: 4px solid var(--accent-aqua);
       border-radius: var(--radius-md);
-      padding: 10px 14px;
+      padding: 12px 14px;
       margin-bottom: 14px;
       display: flex;
       flex-wrap: wrap;
@@ -1095,8 +1547,8 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background-color: rgba(6, 182, 212, 0.16);
-      border: 1px solid rgba(6, 182, 212, 0.45);
+      background-color: rgba(6, 182, 212, 0.14);
+      border: 1px solid rgba(6, 182, 212, 0.4);
       color: #67e8f9;
       font-size: 11px;
       font-weight: 800;
@@ -1107,8 +1559,8 @@
     .csv-converted-badge {
       display: inline-flex;
       align-items: center;
-      background-color: rgba(245, 158, 11, 0.16);
-      border: 1px solid rgba(245, 158, 11, 0.45);
+      background-color: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.4);
       color: #fbbf24;
       font-size: 10.5px;
       font-weight: 700;
@@ -1126,7 +1578,7 @@
     .lap-chip {
       background-color: var(--bg-base);
       border: 1px solid var(--border-subtle);
-      border-radius: 4px;
+      border-radius: 6px;
       padding: 3px 8px;
       font-size: 11.5px;
       font-weight: 700;
@@ -1139,12 +1591,11 @@
       font-weight: 600;
     }
 
-    /* CSV詳細ラップ一覧テーブル（25m通過 / 25m split / 50m split / 100m split） */
     .csv-detail-table-wrap {
       width: 100%;
       overflow-x: auto;
       margin-top: 4px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--border-subtle);
       padding-top: 8px;
     }
 
@@ -1156,10 +1607,10 @@
     }
 
     .csv-detail-table th {
-      background-color: rgba(6, 12, 24, 0.7);
+      background-color: var(--bg-surface);
       color: var(--text-secondary);
       font-weight: 700;
-      padding: 5px 8px;
+      padding: 6px 8px;
       border: 1px solid var(--border-subtle);
       white-space: nowrap;
     }
@@ -1169,13 +1620,13 @@
       color: var(--text-primary);
       font-family: var(--font-mono);
       font-weight: 700;
-      padding: 5px 8px;
+      padding: 6px 8px;
       border: 1px solid var(--border-subtle);
       white-space: nowrap;
     }
 
     .csv-detail-table td.dist-col {
-      background-color: rgba(19, 32, 59, 0.8);
+      background-color: var(--bg-card);
       color: var(--accent-aqua-light);
       font-weight: 800;
     }
@@ -1184,7 +1635,6 @@
       color: #34d399;
     }
 
-    /* 分析カードグリッド */
     .cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
@@ -1198,14 +1648,13 @@
     }
 
     .analysis-card {
-      background-color: var(--bg-surface);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 14px 16px;
+      padding: 15px 17px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
     }
 
     .card-top {
@@ -1221,20 +1670,20 @@
       font-weight: 800;
       letter-spacing: 0.03em;
       padding: 2px 8px;
-      border-radius: 4px;
-      background-color: rgba(6, 182, 212, 0.16);
+      border-radius: 6px;
+      background-color: rgba(6, 182, 212, 0.14);
       color: var(--accent-aqua-light);
       border: 1px solid rgba(6, 182, 212, 0.35);
     }
 
     .turn-card .card-badge {
-      background-color: rgba(16, 185, 129, 0.16);
+      background-color: rgba(16, 185, 129, 0.14);
       color: #34d399;
       border-color: rgba(16, 185, 129, 0.35);
     }
 
     .swim-card .card-badge {
-      background-color: rgba(245, 158, 11, 0.16);
+      background-color: rgba(245, 158, 11, 0.14);
       color: #fbbf24;
       border-color: rgba(245, 158, 11, 0.35);
     }
@@ -1277,7 +1726,6 @@
       color: var(--accent-rose);
     }
 
-    /* 差分バッジ（改善＝緑、悪化＝赤） */
     .delta-badge {
       font-family: var(--font-mono);
       font-size: 10.5px;
@@ -1286,22 +1734,21 @@
       border-radius: 4px;
     }
     .delta-better {
-      background-color: rgba(16, 185, 129, 0.2);
+      background-color: rgba(16, 185, 129, 0.18);
       border: 1px solid rgba(16, 185, 129, 0.45);
       color: #34d399;
     }
     .delta-worse {
-      background-color: rgba(244, 63, 94, 0.2);
+      background-color: rgba(244, 63, 94, 0.18);
       border: 1px solid rgba(244, 63, 94, 0.45);
       color: #fda4af;
     }
     .delta-even {
-      background-color: rgba(148, 163, 184, 0.15);
-      border: 1px solid rgba(148, 163, 184, 0.3);
+      background-color: rgba(142, 142, 147, 0.15);
+      border: 1px solid rgba(142, 142, 147, 0.3);
       color: var(--text-secondary);
     }
 
-    /* 積み上げ横棒グラフ（1段 / 上下2段比較） */
     .bar-compare-stack {
       display: flex;
       flex-direction: column;
@@ -1348,7 +1795,7 @@
       font-family: var(--font-mono);
       font-size: 10.5px;
       font-weight: 800;
-      color: #050b14;
+      color: #000000;
       overflow: hidden;
       white-space: nowrap;
       border-right: 1px solid rgba(0, 0, 0, 0.25);
@@ -1366,7 +1813,6 @@
       color: var(--text-muted);
     }
 
-    /* 内訳指標グリッド */
     .breakdown-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1378,7 +1824,7 @@
       border: 1px solid var(--border-subtle);
       border-left-width: 3px;
       border-radius: var(--radius-sm);
-      padding: 7px 10px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
       gap: 3px;
@@ -1422,12 +1868,12 @@
     }
 
     /* ==========================================================================
-       8. モーダル（CSV選択 / 保存データ管理・JSON）＆トースト通知
+       11. モーダル（CSV選択 / 重複保存確認 / 削除確認 / JSON）＆トースト通知
        ========================================================================== */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background-color: rgba(3, 7, 16, 0.78);
+      background-color: rgba(0, 0, 0, 0.82);
       backdrop-filter: blur(4px);
       display: none;
       align-items: center;
@@ -1441,21 +1887,25 @@
     }
 
     .modal-box {
-      background-color: var(--bg-surface);
+      background-color: var(--bg-panel);
       border: 1px solid var(--border-strong);
       border-radius: var(--radius-lg);
-      max-width: 780px;
+      max-width: 760px;
       width: 100%;
       max-height: 88vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85);
+    }
+
+    .modal-box.compact-modal {
+      max-width: 460px;
     }
 
     .modal-header {
-      padding: 12px 16px;
-      background-color: var(--bg-panel);
+      padding: 14px 18px;
+      background-color: var(--bg-surface);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -1463,21 +1913,22 @@
     }
 
     .modal-title {
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 800;
     }
 
     .modal-body {
-      padding: 14px 16px;
+      padding: 16px 18px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+      font-size: 13px;
     }
 
     .modal-footer {
-      padding: 10px 16px;
-      background-color: var(--bg-panel);
+      padding: 12px 18px;
+      background-color: var(--bg-surface);
       border-top: 1px solid var(--border-subtle);
       display: flex;
       justify-content: flex-end;
@@ -1503,7 +1954,7 @@
     .csv-table th {
       position: sticky;
       top: 0;
-      background-color: var(--bg-panel);
+      background-color: var(--bg-surface);
       color: var(--text-secondary);
       font-size: 11px;
       font-weight: 700;
@@ -1514,7 +1965,7 @@
 
     .csv-table td {
       padding: 7px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-subtle);
       white-space: nowrap;
     }
 
@@ -1525,364 +1976,382 @@
       background-color: var(--bg-hover);
     }
     .csv-table tr.csv-race-row.is-selected {
-      background-color: rgba(6, 182, 212, 0.2);
-    }
-
-    .saved-list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px 10px;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      font-size: 12px;
+      background-color: rgba(6, 182, 212, 0.18);
     }
 
     .json-preview {
       width: 100%;
-      height: 150px;
+      height: 180px;
       background-color: var(--bg-base);
       border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
-      padding: 8px 10px;
+      padding: 10px 12px;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 11.5px;
       color: #67e8f9;
       resize: vertical;
     }
 
     .toast-container {
       position: fixed;
-      bottom: 18px;
-      right: 18px;
+      bottom: 20px;
+      right: 20px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      z-index: 200;
-      pointer-events: none;
+      z-index: 250;
     }
 
     .toast {
       background-color: var(--bg-panel);
       border: 1px solid var(--accent-aqua);
       color: var(--text-primary);
-      padding: 9px 14px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
       font-weight: 700;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
   </style>
 </head>
 <body>
-  <!-- 万一の初期化例外を表示する安全バナー -->
   <div id="fatalErrorBanner" class="fatal-error-banner" role="alert"></div>
 
   <!-- ========================================================================
-       1. 上部メタデータ＆ツールバー（静的DOMとして最初から確実に表示）
+       VIEW 1: トップメニュー画面（Todai Swim App スタイル）
        ======================================================================== -->
-  <header class="app-header">
-    <div class="header-top-row">
-      <div class="brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 16c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"></path>
-            <path d="M2 20c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"></path>
-            <circle cx="15" cy="7" r="2.5"></circle>
-            <path d="M6 12l4-3 4 2 4-3"></path>
-          </svg>
-        </div>
-        <div>
-          <div class="brand-title">SwimStart &amp; Turn Analyzer Pro</div>
-          <div class="brand-sub">大学競泳アナリティクス｜スタート15m・ターン20m・CSVラップ＆過去レース比較</div>
-        </div>
+  <div id="viewHome" class="app-view home-view active">
+    <div class="home-container">
+      <div class="home-hero">
+        <span class="home-badge">SWIM ANALYTICS SYSTEM</span>
+        <h1 class="home-title">SwimStart &amp; Turn App</h1>
+        <p class="home-subtitle">スタート15m・ターン20m・バサロ/ドルフィン＆公式ラップ統合分析</p>
       </div>
 
-      <div class="header-actions">
-        <input type="file" id="csvFileInput" class="file-input-hidden" accept=".csv,text/csv" />
-        <button type="button" id="btnImportCsv" class="btn btn-emerald" title="大会リザルトやラップデータのCSVを一括読み込み（UTF-8 / Shift-JIS自動判別）">
-          CSV読込
+      <div class="home-menu-buttons">
+        <button type="button" id="btnGoAnalyzeFromHome" class="pill-menu-btn">
+          <span>レース分析をする</span>
         </button>
-        <button type="button" id="btnOpenCsvModal" class="btn btn-secondary" style="display:none;" title="読み込んだCSV内の別選手・別レースへ切り替え">
-          CSVリストから切替 <span id="csvCountBadge" class="csv-count-pill num">0</span>
+
+        <button type="button" id="btnGoResultsFromHome" class="pill-menu-btn">
+          <span>分析したレースを見る</span>
+          <span id="homeSavedCountBadge" class="menu-count-badge">0件</span>
         </button>
-        <button type="button" id="btnExportSampleCsv" class="btn btn-secondary" title="複数選手・ラップ付きのサンプルCSVファイルをダウンロード">
-          サンプルCSV出力
-        </button>
-        <button type="button" id="btnLoadDemo" class="btn btn-amber" title="サンプル数値・CSVデータ・過去比較をセットして動作確認">
-          デモ数値入力
-        </button>
-        <button type="button" id="btnSaveAnalysis" class="btn btn-primary" title="現在の分析結果をブラウザに保存（過去比較に使用可能）">
-          分析結果を保存
-        </button>
-        <button type="button" id="btnManageSaved" class="btn btn-secondary" title="保存済みレース一覧・JSON出力/読込">
-          保存管理 / JSON
-        </button>
+      </div>
+
+      <div class="home-footer-utils">
+        <button type="button" id="btnHomeExportJson" class="subtle-util-btn">JSONバックアップ書出</button>
+        <input type="file" id="homeImportJsonInput" class="file-input-hidden" accept=".json,application/json" />
+        <button type="button" id="btnHomeImportJson" class="subtle-util-btn">JSONバックアップ読込</button>
+        <button type="button" id="btnHomeAddSampleData" class="subtle-util-btn">サンプルデータを追加</button>
       </div>
     </div>
-
-    <div class="header-meta-row">
-      <div class="field-pill">
-        <label for="athleteNameInput">選手名</label>
-        <input type="text" id="athleteNameInput" value="山田 太郎" placeholder="例: 山田 太郎" style="width:105px;" />
-      </div>
-
-      <div class="field-pill">
-        <label for="meetNameInput">大会名</label>
-        <input type="text" id="meetNameInput" value="2026/11/15 秋季記録会" placeholder="例: インカレ予選" style="width:155px;" />
-      </div>
-
-      <div class="field-pill">
-        <label for="raceDateInput">開催日</label>
-        <input type="text" id="raceDateInput" class="num" value="2026/11/15" placeholder="2026/11/15" style="width:92px;" />
-      </div>
-
-      <div class="field-pill">
-        <label for="strokeSelect">種目</label>
-        <select id="strokeSelect">
-          <option value="Fr" selected>自由形 (Fr)</option>
-          <option value="Ba">背泳ぎ (Ba)</option>
-          <option value="Br">平泳ぎ (Br)</option>
-          <option value="Fly">バタフライ (Fly)</option>
-          <option value="IM">個人メドレー (IM)</option>
-        </select>
-      </div>
-
-      <div class="field-pill">
-        <label for="distanceSelect">距離</label>
-        <select id="distanceSelect" class="num">
-          <option value="50">50m</option>
-          <option value="100" selected>100m</option>
-          <option value="200">200m</option>
-          <option value="400">400m</option>
-        </select>
-      </div>
-
-      <div class="field-pill">
-        <label for="officialRtInput">公式RT (秒)</label>
-        <input type="text" id="officialRtInput" class="num" value="0.63" placeholder="0.63" style="width:56px;" />
-      </div>
-
-      <div class="field-pill">
-        <label for="officialTimeInput">公式記録 (秒)</label>
-        <input type="text" id="officialTimeInput" class="num" value="50.12" placeholder="50.12" style="width:72px;" />
-      </div>
-
-      <div class="field-pill">
-        <label for="fpsSelect">FPS</label>
-        <select id="fpsSelect" class="num">
-          <option value="120">120fps</option>
-          <option value="60" selected>60fps</option>
-          <option value="30">30fps</option>
-        </select>
-      </div>
-
-      <div class="field-pill">
-        <label for="turnEndModeSelect">ターン基準</label>
-        <select id="turnEndModeSelect">
-          <option value="15m" selected>壁後15mまで</option>
-          <option value="breakout">浮き上がりまで</option>
-        </select>
-      </div>
-    </div>
-  </header>
+  </div>
 
   <!-- ========================================================================
-       2. メイン2カラムエリア（左62%：動画プレイヤー / 右38%：打刻リスト）
+       VIEW 2: レース分析画面（動画＆CSV読込・打刻・リアルタイム計算）
        ======================================================================== -->
-  <main class="cockpit-grid">
-    <!-- 左カラム：動画プレイヤー -->
-    <section class="panel" aria-label="動画プレイヤーエリア">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="dot-aqua"></span>
-          <span>映像ビューア</span>
-          <span id="videoSourceBadge" style="font-size:11px; color:var(--text-secondary); font-weight:500;">(未読込)</span>
+  <div id="viewAnalyze" class="app-view">
+    <header class="app-header">
+      <div class="header-top-row">
+        <div class="brand">
+          <button type="button" id="btnAnalyzeToHome" class="nav-back-btn" title="トップメニューへ戻る">
+            <span>← ホーム</span>
+          </button>
+          <button type="button" id="btnOpenSavedRacesModal" class="btn btn-secondary" title="保存済みのレースデータとYouTubeリンクを呼び出す">
+            保存データ読込
+          </button>
+          <div class="brand-title">レース分析コックピット</div>
         </div>
 
-        <div class="video-toolbar">
-          <button type="button" id="btnToggleYtMode" class="tool-chip active-aqua" style="display:none;" title="拡大・ドラッグ移動モードと、YouTubeプレイヤー直接クリック操作モードを切り替えます">
-            パン移動モード
+        <div class="header-actions">
+          <input type="file" id="csvFileInput" class="file-input-hidden" accept=".csv,text/csv" />
+          <button type="button" id="btnImportCsv" class="btn btn-emerald" title="既存ストローク分析サイト出力CSVやリザルトCSVを一括読み込み">
+            CSV読込
           </button>
-          <button type="button" id="btnToggleGuide" class="tool-chip" title="15mラインや壁判定用の赤い垂直基準線を表示/非表示">
-            基準ライン: OFF
+          <button type="button" id="btnOpenCsvModal" class="btn btn-secondary" style="display:none;">
+            CSVリスト切替 <span id="csvCountBadge" class="csv-count-pill num">0</span>
           </button>
-          <span id="zoomLevelBadge" class="zoom-badge num">1.00x</span>
-          <button type="button" id="btnResetZoom" class="tool-chip" title="拡大率と位置をリセット">
-            リセット
+          <button type="button" id="btnExportSampleCsv" class="btn btn-secondary">
+            サンプルCSV出力
+          </button>
+          <button type="button" id="btnLoadDemo" class="btn btn-amber">
+            デモ数値入力
+          </button>
+          <button type="button" id="btnSaveAnalysis" class="btn btn-primary">
+            保存する
+          </button>
+          <button type="button" id="btnAnalyzeToResults" class="btn btn-secondary">
+            分析結果を見る <span id="analyzeSavedCountBadge" class="csv-count-pill num">0</span>
           </button>
         </div>
       </div>
 
-      <!-- ソース切替タブ（ローカル動画 / YouTubeリンク引用） -->
-      <div class="source-tabs-bar">
-        <div class="source-tab-group" role="tablist">
-          <button type="button" id="tabLocalVideo" class="source-tab-btn active" role="tab" aria-selected="true">ローカル動画 (MP4/MOV)</button>
-          <button type="button" id="tabYoutubeVideo" class="source-tab-btn" role="tab" aria-selected="false">YouTubeリンク引用</button>
+      <div class="header-meta-row">
+        <div class="field-pill">
+          <label for="athleteNameInput">選手名</label>
+          <input type="text" id="athleteNameInput" value="水野 吉晴" placeholder="例: 水野 吉晴" style="width:105px;" />
         </div>
 
-        <div id="paneLocalVideo" class="source-pane active">
-          <input type="file" id="localVideoInput" class="file-input-hidden" accept="video/*" />
-          <button type="button" id="btnSelectLocalFile" class="btn btn-primary">動画ファイルを選択</button>
-          <span style="font-size:11px; color:var(--text-secondary);">または下の画面へドラッグ＆ドロップ</span>
+        <div class="field-pill">
+          <label for="meetNameInput">大会名</label>
+          <input type="text" id="meetNameInput" value="26東スイ招待予選" placeholder="例: 26東スイ招待予選" style="width:150px;" />
         </div>
 
-        <div id="paneYoutubeVideo" class="source-pane">
-          <input type="text" id="ytUrlInput" class="yt-url-input" placeholder="YouTubeのURLを貼り付け (watch?v=, youtu.be/, live/, shorts/, &amp;t=1m30s)" />
-          <button type="button" id="btnLoadYt" class="btn" style="background:var(--accent-rose); color:#fff;">引用再生</button>
+        <div class="field-pill">
+          <label for="raceDateInput">開催日</label>
+          <input type="text" id="raceDateInput" class="num" value="2026/11/15" placeholder="2026/11/15" style="width:92px;" />
+        </div>
+
+        <div class="field-pill">
+          <label for="strokeSelect">種目</label>
+          <select id="strokeSelect">
+            <option value="Fr">自由形 (Fr)</option>
+            <option value="Ba">背泳ぎ (Ba)</option>
+            <option value="Br">平泳ぎ (Br)</option>
+            <option value="Fly" selected>バタフライ (Fly)</option>
+            <option value="IM">個人メドレー (IM)</option>
+          </select>
+        </div>
+
+        <div class="field-pill">
+          <label for="distanceSelect">距離</label>
+          <select id="distanceSelect" class="num">
+            <option value="50">50m</option>
+            <option value="100" selected>100m</option>
+            <option value="200">200m</option>
+            <option value="400">400m</option>
+          </select>
+        </div>
+
+        <div class="field-pill">
+          <label for="officialRtInput">公式RT</label>
+          <input type="text" id="officialRtInput" class="num" value="0.65" placeholder="0.65" style="width:54px;" />
+        </div>
+
+        <div class="field-pill">
+          <label for="officialTimeInput">公式記録</label>
+          <input type="text" id="officialTimeInput" class="num" value="55.96" placeholder="55.96" style="width:70px;" />
+        </div>
+
+        <div class="field-pill">
+          <label for="fpsSelect">FPS</label>
+          <select id="fpsSelect" class="num">
+            <option value="120">120fps</option>
+            <option value="60" selected>60fps</option>
+            <option value="30">30fps</option>
+          </select>
+        </div>
+
+        <div class="field-pill">
+          <label for="turnEndModeSelect">ターン基準</label>
+          <select id="turnEndModeSelect">
+            <option value="15m" selected>壁後15mまで</option>
+            <option value="breakout">浮き上がりまで</option>
+          </select>
         </div>
       </div>
+    </header>
 
-      <!-- ズーム＆パン動画ビューポート -->
-      <div id="videoViewport" class="video-viewport">
-        <div id="videoTransformLayer" class="video-transform-layer">
-          <video id="raceVideo" playsinline preload="metadata"></video>
-          <div id="ytPlayerContainer">
-            <div id="ytPlayerTarget"></div>
+    <main class="cockpit-grid">
+      <!-- 左カラム：動画プレイヤー -->
+      <section class="panel" aria-label="動画プレイヤーエリア">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="dot-aqua"></span>
+            <span>映像ビューア</span>
+            <span id="videoSourceBadge" style="font-size:11px; color:var(--text-secondary); font-weight:500;">(未読込)</span>
           </div>
 
-          <!-- 初期プレースホルダー -->
-          <div id="videoPlaceholder" class="video-placeholder">
-            <div class="placeholder-title">大会映像を読み込んでスタート・ターンを打刻</div>
-            <div class="placeholder-desc">
-              上のタブから「ローカル動画 (MP4/MOV)」または「YouTubeリンク引用」を選んで映像を表示できます。<br />
-              右側の打刻パネルは常に横に表示されているため、映像をコマ送りしながら視線移動だけで素早く打刻できます。
+          <div class="video-toolbar">
+            <button type="button" id="btnToggleYtMode" class="tool-chip active-aqua" style="display:none;">
+              パン移動モード
+            </button>
+            <button type="button" id="btnToggleGuide" class="tool-chip">
+              基準ライン: OFF
+            </button>
+            <span id="zoomLevelBadge" class="zoom-badge num">1.00x</span>
+            <button type="button" id="btnResetZoom" class="tool-chip">
+              リセット
+            </button>
+          </div>
+        </div>
+
+        <div class="source-tabs-bar">
+          <div class="source-tab-group" role="tablist">
+            <button type="button" id="tabLocalVideo" class="source-tab-btn active" role="tab" aria-selected="true">ローカル動画 (MP4/MOV)</button>
+            <button type="button" id="tabYoutubeVideo" class="source-tab-btn" role="tab" aria-selected="false">YouTubeリンク引用</button>
+          </div>
+
+          <div id="paneLocalVideo" class="source-pane active">
+            <input type="file" id="localVideoInput" class="file-input-hidden" accept="video/*" />
+            <button type="button" id="btnSelectLocalFile" class="btn btn-primary">動画ファイルを選択</button>
+            <span style="font-size:11px; color:var(--text-secondary);">または下の画面へドラッグ＆ドロップ</span>
+          </div>
+
+          <div id="paneYoutubeVideo" class="source-pane">
+            <input type="text" id="ytUrlInput" class="yt-url-input" placeholder="YouTubeのURLを貼り付け (watch?v=, youtu.be/, live/, shorts/)" />
+            <button type="button" id="btnLoadYt" class="btn" style="background:var(--accent-rose); color:#fff;">引用再生</button>
+          </div>
+        </div>
+
+        <div id="videoViewport" class="video-viewport">
+          <div id="videoTransformLayer" class="video-transform-layer">
+            <video id="raceVideo" playsinline preload="metadata"></video>
+            <div id="ytPlayerContainer">
+              <div id="ytPlayerTarget"></div>
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
-              <button type="button" id="btnPlaceholderLocal" class="btn btn-primary">ローカル動画を選択</button>
-              <button type="button" id="btnPlaceholderYt" class="btn btn-secondary">YouTube URLを入力</button>
+
+            <div id="videoPlaceholder" class="video-placeholder">
+              <div class="placeholder-title">大会映像を読み込んでスタート・ターンを打刻</div>
+              <div class="placeholder-desc">
+                上のタブから「ローカル動画 (MP4/MOV)」または「YouTubeリンク引用」を選んで映像を表示できます。<br />
+                右側の打刻パネルでコマ送りしながらタイムスタンプを記録し、「保存する」で保存できます。
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+                <button type="button" id="btnPlaceholderLocal" class="btn btn-primary">ローカル動画を選択</button>
+                <button type="button" id="btnPlaceholderYt" class="btn btn-secondary">YouTube URLを入力</button>
+              </div>
             </div>
           </div>
+
+          <div id="ytInteractionShield" class="yt-interaction-shield"></div>
+          <div id="ytDiagnosticBanner" class="yt-diagnostic-banner" role="alert"></div>
+
+          <div id="verticalGuideLine" class="guide-line">
+            <span class="guide-line-handle">基準線</span>
+          </div>
+
+          <div class="viewport-hint">
+            ホイール: 拡大(1x〜5x) / ドラッグ: 移動 / Wクリック: リセット
+          </div>
         </div>
 
-        <!-- YouTubeドラッグパン・ホイールズーム用シールド -->
-        <div id="ytInteractionShield" class="yt-interaction-shield"></div>
+        <div class="player-controls">
+          <input type="range" id="videoScrubber" class="video-scrubber" min="0" max="100" step="0.001" value="0" />
 
-        <!-- YouTube引用エラー・file://環境診断バナー -->
-        <div id="ytDiagnosticBanner" class="yt-diagnostic-banner" role="alert"></div>
+          <div class="transport-row">
+            <div class="timecode-box">
+              <span id="currentTimeDisplay" class="time-code-main time-code">00:00.000</span>
+              <span id="currentFrameDisplay" class="frame-badge">F: 0</span>
+            </div>
 
-        <!-- 赤い垂直基準ライン -->
-        <div id="verticalGuideLine" class="guide-line" title="左右にドラッグして15mラインや壁の位置に合わせられます">
-          <span class="guide-line-handle">基準線</span>
+            <div class="step-buttons">
+              <button type="button" id="btnStepBackFrame" class="btn-step">&lt;&lt; -1F</button>
+              <button type="button" id="btnStepBackSmall" class="btn-step">&lt; -0.1s</button>
+              <button type="button" id="btnPlayPause" class="btn-play">再生</button>
+              <button type="button" id="btnStepFwdSmall" class="btn-step">+0.1s &gt;</button>
+              <button type="button" id="btnStepFwdFrame" class="btn-step">+1F &gt;&gt;</button>
+            </div>
+
+            <div class="speed-group" role="group" aria-label="再生速度">
+              <button type="button" class="speed-btn" data-rate="0.25">0.25x</button>
+              <button type="button" class="speed-btn" data-rate="0.5">0.5x</button>
+              <button type="button" class="speed-btn active" data-rate="1">1.0x</button>
+            </div>
+          </div>
+
+          <div class="shortcut-bar">
+            <span><kbd class="kbd">Space</kbd>再生/停止</span>
+            <span><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd>±1F</span>
+            <span><kbd class="kbd">Shift+←/→</kbd>±0.1s</span>
+            <span><kbd class="kbd">Enter</kbd>選択項目を打刻して次へ</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右カラム：ガイド付き打刻リスト -->
+      <aside class="panel" aria-label="タイムスタンプ打刻パネル">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="dot-emerald"></span>
+            <span>ガイド付き打刻リスト</span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button type="button" id="btnStampActive" class="btn-stamp-now">
+              打刻 (Enter)
+            </button>
+            <button type="button" id="btnClearAllStamps" class="tool-chip">
+              全クリア
+            </button>
+          </div>
         </div>
 
-        <div class="viewport-hint">
-          ホイール: 拡大(1x〜5x) / ドラッグ: 移動 / Wクリック: リセット
+        <div id="stampScrollArea" class="stamp-scroll-area"></div>
+      </aside>
+    </main>
+
+    <!-- 下部：リアルタイム分析ダッシュボード -->
+    <section class="dashboard-section" aria-label="分析結果ダッシュボード">
+      <div class="dashboard-toolbar">
+        <div class="dashboard-title">
+          <span>区間タイム自動分析 &amp; 過去レース2段比較</span>
+        </div>
+
+        <div class="compare-controls">
+          <label for="compareRaceSelect">比較対象レース:</label>
+          <select id="compareRaceSelect">
+            <option value="">-- 比較なし --</option>
+          </select>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chkSameAthleteOnly" checked />
+            同選手・同種目のみ
+          </label>
+        </div>
+
+        <div class="legend-global">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--seg-rt);"></span>RT / 壁滞在</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--seg-air);"></span>空中 / IN 5m</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--seg-uw);"></span>水中区間</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--seg-swim);"></span>浮き上がり後</div>
         </div>
       </div>
 
-      <!-- プレイヤー操作コントロール -->
-      <div class="player-controls">
-        <input type="range" id="videoScrubber" class="video-scrubber" min="0" max="100" step="0.001" value="0" />
-
-        <div class="transport-row">
-          <div class="timecode-box">
-            <span id="currentTimeDisplay" class="time-code-main time-code">00:00.000</span>
-            <span id="currentFrameDisplay" class="frame-badge">F: 0</span>
-          </div>
-
-          <div class="step-buttons">
-            <button type="button" id="btnStepBackFrame" class="btn-step" title="1フレーム戻る (←)">&lt;&lt; -1F</button>
-            <button type="button" id="btnStepBackSmall" class="btn-step" title="0.1秒戻る (Shift+←)">&lt; -0.1s</button>
-            <button type="button" id="btnPlayPause" class="btn-play" title="再生 / 停止 (Space)">再生</button>
-            <button type="button" id="btnStepFwdSmall" class="btn-step" title="0.1秒進む (Shift+→)">+0.1s &gt;</button>
-            <button type="button" id="btnStepFwdFrame" class="btn-step" title="1フレーム進む (→)">+1F &gt;&gt;</button>
-          </div>
-
-          <div class="speed-group" role="group" aria-label="再生速度">
-            <button type="button" class="speed-btn" data-rate="0.25">0.25x</button>
-            <button type="button" class="speed-btn" data-rate="0.5">0.5x</button>
-            <button type="button" class="speed-btn active" data-rate="1">1.0x</button>
-          </div>
-        </div>
-
-        <div class="shortcut-bar">
-          <span><kbd class="kbd">Space</kbd>再生/停止</span>
-          <span><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd>±1F</span>
-          <span><kbd class="kbd">Shift+←/→</kbd>±0.1s</span>
-          <span><kbd class="kbd">Enter</kbd>選択項目を打刻して次へ</span>
-        </div>
-      </div>
+      <div id="csvSummaryBanner"></div>
+      <div id="dashboardCardsGrid" class="cards-grid"></div>
     </section>
-
-    <!-- 右カラム：種目・距離連動のガイド付き打刻リスト -->
-    <aside class="panel" aria-label="タイムスタンプ打刻パネル">
-      <div class="panel-header">
-        <div class="panel-title">
-          <span class="dot-emerald"></span>
-          <span>ガイド付き打刻リスト</span>
-        </div>
-
-        <div style="display:flex; align-items:center; gap:6px;">
-          <button type="button" id="btnStampActive" class="btn-stamp-now" title="現在選択中の項目に動画タイムを記録 (Enter)">
-            打刻 (Enter)
-          </button>
-          <button type="button" id="btnClearAllStamps" class="tool-chip" title="全打刻をリセット">
-            全クリア
-          </button>
-        </div>
-      </div>
-
-      <div id="stampScrollArea" class="stamp-scroll-area">
-        <!-- JSで種目・距離に応じた打刻項目を描画 -->
-      </div>
-    </aside>
-  </main>
+  </div>
 
   <!-- ========================================================================
-       3. 下部：分析結果ダッシュボード＆過去レース2段グラフ比較
+       VIEW 3: 「分析したレースを見る」4階層ドリルダウン画面
        ======================================================================== -->
-  <section class="dashboard-section" aria-label="分析結果ダッシュボード">
-    <div class="dashboard-toolbar">
-      <div class="dashboard-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-aqua)" stroke-width="2.4">
-          <line x1="18" y1="20" x2="18" y2="10"></line>
-          <line x1="12" y1="20" x2="12" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="14"></line>
-        </svg>
-        <span>区間タイム自動分析 &amp; 過去レース2段比較</span>
+  <div id="viewResults" class="app-view">
+    <header class="results-topbar">
+      <div class="results-nav-left">
+        <button type="button" id="btnResultsBack" class="nav-back-btn">
+          <span id="resultsBackLabel">← ホームへ戻る</span>
+        </button>
+        <nav id="resultsBreadcrumb" class="breadcrumb-trail" aria-label="パンくずリスト"></nav>
       </div>
 
-      <div class="compare-controls">
-        <label for="compareRaceSelect">比較対象レース:</label>
-        <select id="compareRaceSelect">
-          <option value="">-- 比較なし --</option>
-        </select>
-        <label class="checkbox-label">
-          <input type="checkbox" id="chkSameAthleteOnly" checked />
-          同選手・同種目のみ
-        </label>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" id="btnResultsToHome" class="subtle-util-btn">ホーム</button>
+        <button type="button" id="btnResultsToAnalyze" class="btn btn-primary">＋ レース分析をする</button>
       </div>
+    </header>
 
-      <div class="legend-global">
-        <div class="legend-item"><span class="legend-dot" style="background: var(--seg-rt);"></span>RT / 壁滞在</div>
-        <div class="legend-item"><span class="legend-dot" style="background: var(--seg-air);"></span>空中 / IN 5m</div>
-        <div class="legend-item"><span class="legend-dot" style="background: var(--seg-uw);"></span>水中区間</div>
-        <div class="legend-item"><span class="legend-dot" style="background: var(--seg-swim);"></span>浮き上がり後</div>
-      </div>
-    </div>
-
-    <!-- CSV公式データ＆ラップ一覧サマリー -->
-    <div id="csvSummaryBanner"></div>
-
-    <!-- スタート・ターン・純粋スイム計算カードグリッド -->
-    <div id="dashboardCardsGrid" class="cards-grid"></div>
-  </section>
+    <main id="resultsMainContainer" class="results-main-container">
+      <!-- JSで第1階層〜第4階層を描画 -->
+    </main>
+  </div>
 
   <!-- ========================================================================
-       4-A. CSV複数レース選択モーダル
+       MODAL A: CSV複数レース選択モーダル
        ======================================================================== -->
-  <div id="csvSelectModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="csvSelectModalTitle">
+  <div id="csvSelectModal" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
       <div class="modal-header">
-        <h2 id="csvSelectModalTitle" class="modal-title">CSVレース選択（分析対象をワンクリックで反映）</h2>
+        <h2 class="modal-title">CSVレース選択（分析対象をワンクリックで反映）</h2>
         <button type="button" id="btnCloseCsvModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
       </div>
       <div class="modal-body">
         <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
-          <input type="text" id="csvSearchInput" placeholder="選手名・大会名・種目で絞り込み..." style="flex:1; min-width:200px; background:var(--bg-base); border:1px solid var(--border-strong); border-radius:6px; padding:6px 10px; font-size:12px;" />
+          <input type="text" id="csvSearchInput" placeholder="選手名・大会名・種目で絞り込み..." style="flex:1; min-width:200px; background:var(--bg-base); border:1px solid var(--border-strong); border-radius:8px; padding:7px 10px; font-size:12px;" />
           <span id="csvModalInfoText" style="font-size:11.5px; color:var(--text-secondary);"></span>
         </div>
         <div class="csv-modal-table-wrap">
@@ -1909,25 +2378,97 @@
   </div>
 
   <!-- ========================================================================
-       4-B. 保存済みレース管理 / JSON入出力モーダル
+       MODAL B: 重複保存時の確認モーダル（上書き / 新規保存）
        ======================================================================== -->
-  <div id="storageModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="storageModalTitle">
-    <div class="modal-box">
+  <div id="duplicateSaveModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box compact-modal">
       <div class="modal-header">
-        <h2 id="storageModalTitle" class="modal-title">保存済みレース管理 &amp; JSON エクスポート / インポート</h2>
-        <button type="button" id="btnCloseModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
+        <h2 class="modal-title">同じレースのデータが既に存在します</h2>
+        <button type="button" id="btnCloseDupModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
       </div>
       <div class="modal-body">
-        <div style="font-size:12px; font-weight:700; color:var(--accent-aqua-light);">保存済みレース一覧（過去比較に使用）</div>
-        <div id="savedRacesListContainer" style="display:flex; flex-direction:column; gap:6px; max-height:170px; overflow-y:auto;"></div>
-
-        <div style="font-size:12px; font-weight:700; color:var(--accent-emerald); margin-top:4px;">現在の分析データ JSON</div>
-        <textarea id="jsonOutputText" class="json-preview"></textarea>
+        <p id="duplicateSaveDesc" style="color:var(--text-primary); line-height:1.6;"></p>
+        <p style="font-size:12px; color:var(--text-secondary);">既存のデータを最新の分析結果で上書きするか、別のデータとして新しく追加するか選択してください。</p>
       </div>
       <div class="modal-footer">
-        <button type="button" id="btnImportJson" class="btn btn-amber">テキストのJSONを読込</button>
-        <button type="button" id="btnCopyJson" class="btn btn-secondary">JSONをコピー</button>
-        <button type="button" id="btnDownloadJson" class="btn btn-primary">JSONファイル保存</button>
+        <button type="button" id="btnDupCancel" class="btn btn-secondary">キャンセル</button>
+        <button type="button" id="btnDupSaveAsNew" class="btn btn-emerald">別データとして新規保存</button>
+        <button type="button" id="btnDupOverwrite" class="btn btn-primary">上書き更新する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL C: データ削除確認モーダル
+       ======================================================================== -->
+  <div id="deleteConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box compact-modal">
+      <div class="modal-header">
+        <h2 class="modal-title">分析データの削除確認</h2>
+        <button type="button" id="btnCloseDelModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteConfirmDesc" style="color:var(--text-primary); line-height:1.6;"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnDelCancel" class="btn btn-secondary">キャンセル</button>
+        <button type="button" id="btnDelExecute" class="btn btn-danger">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL D: JSONバックアップ書出モーダル
+       ======================================================================== -->
+  <div id="backupModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">全保存データ JSON バックアップ書出</h2>
+        <button type="button" id="btnCloseBackupModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px; color:var(--text-secondary);">保存されている全選手・全レースの分析データをJSON形式でバックアップできます。</p>
+        <textarea id="backupJsonTextarea" class="json-preview" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCopyBackupJson" class="btn btn-secondary">コピー</button>
+        <button type="button" id="btnDownloadBackupJson" class="btn btn-primary">JSONファイル保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL E: 保存データ読込モーダル（分析画面から直接呼び出し）
+       ======================================================================== -->
+  <div id="savedRacesModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">保存データ読込（打刻データ・YouTubeリンクを復元）</h2>
+        <button type="button" id="btnCloseSavedRacesModal" style="font-size:17px; color:var(--text-secondary); padding:2px 8px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+          <input type="text" id="savedRacesSearchInput" placeholder="選手名・大会名・種目で絞り込み..." style="flex:1; min-width:200px; background:var(--bg-base); border:1px solid var(--border-strong); border-radius:8px; padding:7px 10px; font-size:12px;" />
+          <span id="savedRacesModalInfoText" style="font-size:11.5px; color:var(--text-secondary);"></span>
+        </div>
+        <div class="csv-modal-table-wrap">
+          <table class="csv-table">
+            <thead>
+              <tr>
+                <th>選手名</th>
+                <th>大会名</th>
+                <th>種目・距離</th>
+                <th>公式記録</th>
+                <th>YouTubeリンク</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="savedRacesModalTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btnCancelSavedRacesModal" class="btn btn-secondary">閉じる</button>
       </div>
     </div>
   </div>
@@ -1935,51 +2476,76 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- ========================================================================
-       5. アプリケーションJavaScript（エラーハンドリング付き）
+       APPLICATION JAVASCRIPT
        ======================================================================== -->
   <script>
     (() => {
       'use strict';
 
-      const STORAGE_KEY = 'swim_start_turn_saved_races_v2';
+      const STORAGE_KEY = 'swim_start_turn_saved_races_v3';
 
       function showFatalError(err) {
         const banner = document.getElementById('fatalErrorBanner');
         if (banner) {
-          banner.textContent = '初期化エラーが発生しました: ' + (err && err.message ? err.message : String(err));
+          banner.textContent = '初期化エラー: ' + (err && err.message ? err.message : String(err));
           banner.classList.add('visible');
         }
         console.error(err);
       }
 
       /* ----------------------------------------------------------------------
-         1. アプリケーション状態 (State)
+         1. アプリケーション状態
          ---------------------------------------------------------------------- */
       const state = {
-        meetName: '2026/11/15 秋季記録会',
+        // 画面遷移状態 ('home' | 'analyze' | 'results')
+        currentView: 'home',
+
+        // 結果ブラウザ（4階層ドリルダウン）状態
+        resultsDrill: {
+          level: 'athletes', // 'athletes' | 'events' | 'races' | 'detail'
+          athleteName: '',
+          athleteSearchQuery: '',
+          stroke: '',
+          distance: 100,
+          raceId: '',
+          detailCompareRaceId: '',
+          showInlinePlayer: false,
+          inlineStartSec: 0
+        },
+
+        // 分析画面の現在入力データ
+        editingRaceId: null, // 既存レース編集中のID
+        meetName: '26東スイ招待予選',
         raceDate: '2026/11/15',
-        athleteName: '山田 太郎',
-        stroke: 'Fr',          // 'Fr' | 'Ba' | 'Br' | 'Fly' | 'IM'
-        distance: 100,         // 50 | 100 | 200 | 400
-        officialTime: '50.12',
-        officialRt: '0.63',
-        officialLaps: [24.10, 26.02],
-        officialLapDetails: [], // [{ dist: 25, lapCum: 11.62, split25: 11.62, split50: null, split100: null }, ...]
+        athleteName: '水野 吉晴',
+        stroke: 'Fly',          // 'Fr' | 'Ba' | 'Br' | 'Fly' | 'IM'
+        distance: 100,          // 50 | 100 | 200 | 400
+        officialTime: '55.96',
+        officialRt: '0.65',
+        officialLaps: [26.28, 29.68],
+        officialLapDetails: [
+          { dist: 25, lapCum: 11.62, split25: 11.62, split50: null, split100: null },
+          { dist: 50, lapCum: 26.28, split25: 14.66, split50: 26.28, split100: null },
+          { dist: 75, lapCum: 40.45, split25: 14.17, split50: null, split100: null },
+          { dist: 100, lapCum: 55.96, split25: 15.51, split50: 29.68, split100: 55.96 }
+        ],
         fps: 60,
-        turnEndMode: '15m',    // '15m' | 'breakout'
+        turnEndMode: '15m',     // '15m' | 'breakout'
 
         // 動画ソース状態
-        activeSourceTab: 'local', // 'local' | 'youtube'
-        videoSourceType: 'none',  // 'none' | 'local' | 'youtube'
+        activeSourceTab: 'local',
+        videoSourceType: 'none',
         videoSourceLabel: '',
+        youtubeUrl: '',
         youtubeVideoId: '',
         youtubeStartSeconds: 0,
+        ytAutoSeekTime: null,
         ytPlayer: null,
         ytPlayerReady: false,
         ytApiReady: false,
         ytPendingVideo: null,
         ytLoadTimer: null,
-        ytInteractMode: 'pan',    // 'pan' | 'player'
+        ytInteractMode: 'pan',
         ytTargetTime: 0,
         virtualTime: 0,
 
@@ -2015,25 +2581,34 @@
 
         activeFieldId: 'start.gun',
 
-        // CSV読み込み済みレース一覧
+        // CSV読み込み済みリスト
         csvRaces: [],
         selectedCsvIndex: 0,
         csvSplitConverted: false,
 
-        // 保存済み過去レース一覧 & 比較対象ID
+        // 保存済みレースDB & 比較選択
         savedRaces: [],
         compareRaceId: '',
-        sameAthleteOnly: true
+        sameAthleteOnly: true,
+
+        // 保留中の重複保存・削除対象
+        pendingSaveCandidate: null,
+        pendingDuplicateExistingId: null,
+        pendingDeleteRaceId: null
       };
 
       /* ----------------------------------------------------------------------
-         2. DOM要素参照ヘルパー
+         2. DOM要素参照
          ---------------------------------------------------------------------- */
       const els = {};
       function cacheDomElements() {
         const ids = [
+          'viewHome', 'viewAnalyze', 'viewResults',
+          'btnGoAnalyzeFromHome', 'btnGoResultsFromHome', 'homeSavedCountBadge',
+          'btnHomeExportJson', 'homeImportJsonInput', 'btnHomeImportJson', 'btnHomeAddSampleData',
+          'btnAnalyzeToHome', 'btnOpenSavedRacesModal', 'btnAnalyzeToResults', 'analyzeSavedCountBadge',
           'csvFileInput', 'btnImportCsv', 'btnOpenCsvModal', 'csvCountBadge',
-          'btnExportSampleCsv', 'btnLoadDemo', 'btnSaveAnalysis', 'btnManageSaved',
+          'btnExportSampleCsv', 'btnLoadDemo', 'btnSaveAnalysis',
           'athleteNameInput', 'meetNameInput', 'raceDateInput', 'strokeSelect', 'distanceSelect',
           'officialRtInput', 'officialTimeInput', 'fpsSelect', 'turnEndModeSelect',
           'videoSourceBadge', 'btnToggleYtMode', 'btnToggleGuide', 'zoomLevelBadge', 'btnResetZoom',
@@ -2046,10 +2621,19 @@
           'btnStepBackFrame', 'btnStepBackSmall', 'btnPlayPause', 'btnStepFwdSmall', 'btnStepFwdFrame',
           'btnStampActive', 'btnClearAllStamps', 'stampScrollArea',
           'compareRaceSelect', 'chkSameAthleteOnly', 'csvSummaryBanner', 'dashboardCardsGrid',
+          'btnResultsBack', 'resultsBackLabel', 'resultsBreadcrumb',
+          'btnResultsToHome', 'btnResultsToAnalyze', 'resultsMainContainer',
           'csvSelectModal', 'btnCloseCsvModal', 'btnCancelCsvModal', 'csvSearchInput',
           'csvModalInfoText', 'csvModalTableBody',
-          'storageModal', 'btnCloseModal', 'savedRacesListContainer', 'jsonOutputText',
-          'btnImportJson', 'btnCopyJson', 'btnDownloadJson', 'toastContainer'
+          'duplicateSaveModal', 'btnCloseDupModal', 'duplicateSaveDesc',
+          'btnDupCancel', 'btnDupSaveAsNew', 'btnDupOverwrite',
+          'deleteConfirmModal', 'btnCloseDelModal', 'deleteConfirmDesc',
+          'btnDelCancel', 'btnDelExecute',
+          'backupModal', 'btnCloseBackupModal', 'backupJsonTextarea',
+          'btnCopyBackupJson', 'btnDownloadBackupJson',
+          'savedRacesModal', 'btnCloseSavedRacesModal', 'btnCancelSavedRacesModal',
+          'savedRacesSearchInput', 'savedRacesModalInfoText', 'savedRacesModalTableBody',
+          'toastContainer'
         ];
         ids.forEach(id => {
           els[id] = document.getElementById(id);
@@ -2058,19 +2642,82 @@
       }
 
       /* ----------------------------------------------------------------------
-         3. ユーティリティ関数
+         3. 種目別水中キック表記・共通ヘルパー
          ---------------------------------------------------------------------- */
-      function showToast(msg) {
+      function getStrokeLabel(code) {
+        const map = { Fr: '自由形', Ba: '背泳ぎ', Br: '平泳ぎ', Fly: 'バタフライ', IM: '個人メドレー' };
+        return map[code] || code;
+      }
+
+      /**
+       * 種目に応じた水中キック（バサロキック / ドルフィンキック / プルアウト）のラベル設定を返す
+       */
+      function getUnderwaterKickConfig(strokeCode) {
+        if (strokeCode === 'Ba') {
+          return {
+            isPullout: false,
+            kickName: 'バサロキック',
+            shortName: 'バサロ',
+            startInputLabel: 'バサロキック回数:',
+            turnInputLabel: 'バサロ:',
+            startUwMetricTitle: '水中バサロ時間',
+            turnUwMetricTitle: 'ターン後バサロ時間',
+            formatTag: (kicks, secPerKick) => `バサロ ${kicks}回（1回あたり ${secPerKick.toFixed(2)}s）`
+          };
+        }
+        if (strokeCode === 'Br') {
+          return {
+            isPullout: true,
+            kickName: 'プルアウト',
+            shortName: 'プルアウト',
+            startInputLabel: '',
+            turnInputLabel: '',
+            startUwMetricTitle: '水中プルアウト時間',
+            turnUwMetricTitle: 'ターン後プルアウト',
+            formatTag: () => null
+          };
+        }
+        return {
+          isPullout: false,
+          kickName: 'ドルフィンキック',
+          shortName: 'ドルフィン',
+          startInputLabel: 'ドルフィンキック回数:',
+          turnInputLabel: 'ドルフィン:',
+          startUwMetricTitle: '水中ドルフィン時間',
+          turnUwMetricTitle: 'ターン後水中時間',
+          formatTag: (kicks, secPerKick) => `ドルフィン ${kicks}回（1キック ${secPerKick.toFixed(2)}s）`
+        };
+      }
+
+      function showToast(msg, actionObj = null) {
         if (!els.toastContainer) return;
         const el = document.createElement('div');
         el.className = 'toast';
-        el.textContent = msg;
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = msg;
+        el.appendChild(textSpan);
+
+        if (actionObj && actionObj.label && typeof actionObj.onClick === 'function') {
+          const actionBtn = document.createElement('button');
+          actionBtn.type = 'button';
+          actionBtn.className = 'btn btn-primary';
+          actionBtn.style.padding = '4px 10px';
+          actionBtn.style.fontSize = '11px';
+          actionBtn.textContent = actionObj.label;
+          actionBtn.addEventListener('click', () => {
+            actionObj.onClick();
+            el.remove();
+          });
+          el.appendChild(actionBtn);
+        }
+
         els.toastContainer.appendChild(el);
         setTimeout(() => {
           el.style.opacity = '0';
           el.style.transition = 'opacity 0.25s ease';
           setTimeout(() => el.remove(), 260);
-        }, 2500);
+        }, actionObj ? 4500 : 2600);
       }
 
       function formatTimecode(sec) {
@@ -2113,13 +2760,12 @@
         return sec.toFixed(2);
       }
 
-      function getStrokeLabel(code) {
-        const map = { Fr: '自由形', Ba: '背泳ぎ', Br: '平泳ぎ', Fly: 'バタフライ', IM: '個人メドレー' };
-        return map[code] || code;
+      function getTurnCountForDistance(dist) {
+        return Math.max(0, Math.floor(Number(dist) / 50) - 1);
       }
 
       function getTurnCount() {
-        return Math.max(0, Math.floor(state.distance / 50) - 1);
+        return getTurnCountForDistance(state.distance);
       }
 
       function getOrderedFieldIds() {
@@ -2147,8 +2793,39 @@
         else if (parts[0] === 'turn') state.turns[Number(parts[1])][parts[2]] = val;
       }
 
+      function updateSavedBadges() {
+        const count = state.savedRaces.length;
+        if (els.homeSavedCountBadge) els.homeSavedCountBadge.textContent = `${count}件`;
+        if (els.analyzeSavedCountBadge) els.analyzeSavedCountBadge.textContent = String(count);
+      }
+
       /* ----------------------------------------------------------------------
-         4. 動画プレイヤー制御（ローカル動画 ＆ YouTube引用）
+         4. 画面遷移（ホーム ⇔ レース分析 ⇔ 分析したレースを見る）
+         ---------------------------------------------------------------------- */
+      function navigateTo(viewName, drillOpts = null) {
+        state.currentView = viewName;
+        els.viewHome.classList.toggle('active', viewName === 'home');
+        els.viewAnalyze.classList.toggle('active', viewName === 'analyze');
+        els.viewResults.classList.toggle('active', viewName === 'results');
+
+        updateSavedBadges();
+
+        if (viewName === 'analyze') {
+          renderStampPanel();
+          renderCompareSelector();
+          renderDashboard();
+          updateTimeDisplay();
+        } else if (viewName === 'results') {
+          if (drillOpts) {
+            state.resultsDrill = { ...state.resultsDrill, ...drillOpts };
+          }
+          renderResultsView();
+        }
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      /* ----------------------------------------------------------------------
+         5. 動画プレイヤー制御（ローカル動画 ＆ YouTube引用）
          ---------------------------------------------------------------------- */
       function switchSourceTab(tabName) {
         state.activeSourceTab = tabName;
@@ -2279,8 +2956,8 @@
 
       function showFileProtocolWarningBanner() {
         const html = `
-          <p>現在このHTMLファイルを <strong>ローカルファイル直開き（file://）</strong> で開いています。YouTubeのセキュリティ仕様により、<code>file://</code> からの外部埋め込み再生はブロックされます（<strong>エラー 153</strong>）。</p>
-          <p style="margin-top:6px; color:var(--text-secondary);">以下のコマンド等で <code>http://localhost</code> 経由で開くと、YouTube引用・コマ送り機能が正常に動作します：</p>
+          <p>現在このHTMLファイルを <strong>ローカルファイル直開き（file://）</strong> で開いています。YouTubeの仕様により、<code>file://</code> からの外部埋め込み再生はブロックされます（<strong>エラー 153</strong>）。</p>
+          <p style="margin-top:6px; color:var(--text-secondary);">GitHub Pages等で公開したURLから開くか、以下のコマンドで <code>http://localhost</code> 経由で開いてください：</p>
           <div class="yt-diag-cmd-row" style="margin-top:6px;">
             <span>npx serve .</span>
             <button type="button" class="btn btn-secondary" data-copy-cmd="npx serve ." style="padding:2px 7px; font-size:10.5px;">コピー</button>
@@ -2292,7 +2969,7 @@
             <button type="button" id="btnDirectEmbedFallback" class="btn btn-primary" style="font-size:11px;">標準埋め込みIFrameで試す</button>
           </div>
         `;
-        showYtDiagnostic('YouTube引用にはローカルサーバー（http://localhost）が必要です', html);
+        showYtDiagnostic('YouTube引用にはHTTP/HTTPSサーバー環境が必要です', html);
       }
 
       function mountDirectEmbedIframe(videoId, startSeconds = 0) {
@@ -2314,50 +2991,29 @@
         `;
         hideYtDiagnostic();
         setYtInteractMode('player');
-        showToast('標準IFrameモードで表示しました（「プレイヤー操作モード」で操作できます）');
+        showToast('標準IFrameモードで表示しました');
       }
 
       function ensureYouTubeApiLoaded() {
         if (window.YT && typeof window.YT.Player === 'function') {
-          state.ytApiReady = true;
-          return;
-        }
-        if (!document.getElementById('yt-iframe-api-script')) {
-          const tag = document.createElement('script');
-          tag.id = 'yt-iframe-api-script';
-          tag.src = 'https://www.youtube.com/iframe_api';
-          tag.async = true;
-          tag.onerror = () => {
-            showYtDiagnostic(
-              'YouTube IFrame API の読み込みに失敗しました',
-              'ネットワーク制限等によりAPIが読み込めませんでした。<div style="margin-top:8px;"><button type="button" id="btnDirectEmbedFallback" class="btn btn-primary">標準埋め込みIFrameで開く</button></div>'
-            );
-          };
-          document.head.appendChild(tag);
-        }
-      }
-
-      const prevYtReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = function () {
-        if (typeof prevYtReady === 'function') prevYtReady();
-        state.ytApiReady = true;
-        if (state.ytPendingVideo) {
-          const pending = state.ytPendingVideo;
-          state.ytPendingVideo = null;
-          initOrLoadYouTubePlayer(pending.videoId, pending.startSeconds);
-        }
-      };
-
-      function loadYouTubeFromInput(rawInput) {
+      function loadYouTubeFromInput(rawInput, options = {}) {
         const parsed = parseYouTubeUrl(rawInput);
         if (!parsed) {
-          showToast('有効なYouTube URL（watch, youtu.be, live, shorts）または11桁の動画IDを入力してください');
-          return;
+          if (!options.silentToast) {
+            showToast('有効なYouTube URL（watch, youtu.be, live, shorts）または11桁の動画IDを入力してください');
+          }
+          return false;
         }
 
         const { videoId, startSeconds } = parsed;
+        const normalizedUrl = /^https?:\/\//i.test(rawInput.trim())
+          ? rawInput.trim()
+          : (/^[a-zA-Z0-9_-]{11}$/.test(rawInput.trim())
+              ? `https://www.youtube.com/watch?v=${videoId}`
+              : `https://${rawInput.trim()}`);
+
         switchSourceTab('youtube');
-        els.ytUrlInput.value = rawInput.trim();
+        els.ytUrlInput.value = normalizedUrl;
         hideYtDiagnostic();
 
         if (!els.raceVideo.paused) els.raceVideo.pause();
@@ -2365,11 +3021,19 @@
         els.videoPlaceholder.style.display = 'none';
         els.ytPlayerContainer.style.display = 'block';
 
+        const initialSeek = (options.autoSeekTime !== null && options.autoSeekTime !== undefined)
+          ? Number(options.autoSeekTime)
+          : startSeconds;
+
         state.videoSourceType = 'youtube';
+        state.youtubeUrl = normalizedUrl;
         state.youtubeVideoId = videoId;
         state.youtubeStartSeconds = startSeconds;
+        state.ytAutoSeekTime = (options.autoSeekTime !== null && options.autoSeekTime !== undefined)
+          ? Number(options.autoSeekTime)
+          : null;
         state.videoSourceLabel = `YouTube (${videoId})`;
-        state.ytTargetTime = startSeconds;
+        state.ytTargetTime = initialSeek;
         els.videoSourceBadge.textContent = `(${state.videoSourceLabel})`;
 
         els.btnToggleYtMode.style.display = 'inline-flex';
@@ -2379,16 +3043,18 @@
 
         if (isFileProtocolEnv()) {
           showFileProtocolWarningBanner();
-          return;
+          return true;
         }
 
         ensureYouTubeApiLoaded();
 
         if (state.ytApiReady && window.YT && typeof window.YT.Player === 'function') {
-          initOrLoadYouTubePlayer(videoId, startSeconds);
+          initOrLoadYouTubePlayer(videoId, initialSeek, options);
         } else {
-          state.ytPendingVideo = { videoId, startSeconds };
-          showToast('YouTubeプレイヤーを読み込んでいます...');
+          state.ytPendingVideo = { videoId, startSeconds: initialSeek, options };
+          if (!options.silentToast) {
+            showToast('YouTubeプレイヤーを読み込んでいます...');
+          }
           if (state.ytLoadTimer) clearTimeout(state.ytLoadTimer);
           state.ytLoadTimer = setTimeout(() => {
             if (!state.ytPlayerReady && state.videoSourceType === 'youtube') {
@@ -2399,9 +3065,10 @@
             }
           }, 4500);
         }
+        return true;
       }
 
-      function initOrLoadYouTubePlayer(videoId, startSeconds = 0) {
+      function initOrLoadYouTubePlayer(videoId, startSeconds = 0, options = {}) {
         if (state.ytLoadTimer) {
           clearTimeout(state.ytLoadTimer);
           state.ytLoadTimer = null;
@@ -2414,9 +3081,14 @@
           setTimeout(() => {
             if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === 'function') {
               state.ytPlayer.pauseVideo();
+              if (startSeconds > 0 && typeof state.ytPlayer.seekTo === 'function') {
+                state.ytPlayer.seekTo(startSeconds, true);
+              }
             }
           }, 450);
-          showToast(`YouTube動画を引用しました: ${videoId}`);
+          if (!options.silentToast) {
+            showToast(`YouTube動画を引用しました: ${videoId}`);
+          }
           return;
         }
 
@@ -2441,13 +3113,18 @@
             onReady: (event) => {
               state.ytPlayerReady = true;
               hideYtDiagnostic();
-              if (startSeconds > 0) {
-                event.target.seekTo(startSeconds, true);
-                state.ytTargetTime = startSeconds;
+              const seekTarget = (state.ytAutoSeekTime !== null && state.ytAutoSeekTime !== undefined)
+                ? state.ytAutoSeekTime
+                : startSeconds;
+              if (seekTarget > 0) {
+                event.target.seekTo(seekTarget, true);
+                state.ytTargetTime = seekTarget;
               }
               event.target.pauseVideo();
               updateTimeDisplay();
-              showToast(`YouTube動画を読み込みました (${videoId})`);
+              if (!options.silentToast) {
+                showToast(`YouTube動画を読み込みました (${videoId})`);
+              }
             },
             onStateChange: (event) => {
               if (event.data === YT.PlayerState.PLAYING) {
@@ -2464,35 +3141,14 @@
               state.ytPlayerReady = false;
               const code = Number(event.data);
               const errorMap = {
-                2: {
-                  title: '無効な動画IDまたはURLパラメータです (Error 2)',
-                  msg: 'URLに含まれる動画ID（11桁）が正しく認識できませんでした。YouTubeの共有リンクを確認してください。'
-                },
-                5: {
-                  title: 'HTML5プレイヤー再生エラー (Error 5)',
-                  msg: 'ブラウザ内で動画を再生できませんでした。「プレイヤー操作モード」に切り替えるか、ローカル動画をご利用ください。'
-                },
-                100: {
-                  title: '動画が見つかりません (Error 100)',
-                  msg: '指定された動画は「非公開」に設定されているか、削除されています。'
-                },
-                101: {
-                  title: '外部サイトでの埋め込み再生が禁止されています (Error 101)',
-                  msg: 'この動画は投稿者側の設定により外部埋め込み再生が許可されていません。ローカル動画として保存してから読み込んでください。'
-                },
-                150: {
-                  title: '外部サイトでの埋め込み再生が禁止されています (Error 150)',
-                  msg: 'この動画は投稿者側の設定により外部埋め込み再生が許可されていません。ローカル動画として保存してから読み込んでください。'
-                },
-                153: {
-                  title: 'プレイヤー構成・リファラーエラー (Error 153)',
-                  msg: 'ローカルファイル直開き（file://）またはリファラー制限により拒否されました。ローカルサーバー（http://localhost）経由で開いてください。'
-                }
+                2: { title: '無効な動画IDです (Error 2)', msg: 'URLに含まれる動画ID（11桁）が正しく認識できませんでした。' },
+                5: { title: 'HTML5プレイヤー再生エラー (Error 5)', msg: 'ブラウザ内で動画を再生できませんでした。' },
+                100: { title: '動画が見つかりません (Error 100)', msg: '指定された動画は非公開または削除されています。' },
+                101: { title: '外部埋め込み禁止 (Error 101)', msg: '投稿者により外部サイトでの埋め込み再生が禁止されています。' },
+                150: { title: '外部埋め込み禁止 (Error 150)', msg: '投稿者により外部サイトでの埋め込み再生が禁止されています。' },
+                153: { title: 'リファラー制限エラー (Error 153)', msg: 'HTTP/HTTPSサーバー環境から開いてください。' }
               };
-              const info = errorMap[code] || {
-                title: `YouTube再生エラー (Code: ${code})`,
-                msg: 'この動画は埋め込み再生に対応していないか、視聴制限がかかっています。'
-              };
+              const info = errorMap[code] || { title: `YouTube再生エラー (Code: ${code})`, msg: '埋め込み再生に対応していない動画です。' };
               showYtDiagnostic(info.title, info.msg);
             }
           }
@@ -2523,42 +3179,42 @@
         els.raceVideo.src = url;
         els.raceVideo.style.display = 'block';
 
-        state.videoSourceType = 'local';
-        state.videoSourceLabel = file.name;
-        els.videoSourceBadge.textContent = `(${file.name})`;
+      const prevYtReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function () {
+        if (typeof prevYtReady === 'function') prevYtReady();
+        state.ytApiReady = true;
+        if (state.ytPendingVideo) {
+          const pending = state.ytPendingVideo;
+          state.ytPendingVideo = null;
+          initOrLoadYouTubePlayer(pending.videoId, pending.startSeconds, pending.options || {});
+        }
+      };
+
+      function resetVideoPlayerToEmpty() {
+        hideYtDiagnostic();
+        if (!els.raceVideo.paused) els.raceVideo.pause();
+        els.raceVideo.removeAttribute('src');
+        els.raceVideo.style.display = 'none';
+
+        if (state.ytPlayer && state.ytPlayerReady && typeof state.ytPlayer.pauseVideo === 'function') {
+          state.ytPlayer.pauseVideo();
+        }
+        els.ytPlayerContainer.style.display = 'none';
+        els.ytInteractionShield.classList.remove('active');
+        els.btnToggleYtMode.style.display = 'none';
+        els.videoPlaceholder.style.display = 'flex';
+
+        state.videoSourceType = 'none';
+        state.videoSourceLabel = '';
+        state.youtubeUrl = '';
+        state.youtubeVideoId = '';
+        state.youtubeStartSeconds = 0;
+        state.ytAutoSeekTime = null;
+        state.ytTargetTime = 0;
+        state.virtualTime = 0;
+        els.ytUrlInput.value = '';
+        els.videoSourceBadge.textContent = '(未読込)';
         resetZoomAndPan();
-        showToast(`ローカル動画を読み込みました: ${file.name}`);
-      }
-
-      function getCurrentVideoTime() {
-        if (state.videoSourceType === 'local' && !Number.isNaN(els.raceVideo.currentTime)) {
-          return els.raceVideo.currentTime;
-        }
-        if (state.videoSourceType === 'youtube' && state.ytPlayer && state.ytPlayerReady && typeof state.ytPlayer.getCurrentTime === 'function') {
-          const ytState = typeof state.ytPlayer.getPlayerState === 'function' ? state.ytPlayer.getPlayerState() : -1;
-          if (ytState === 1) {
-            const cur = state.ytPlayer.getCurrentTime();
-            state.ytTargetTime = cur;
-            return cur;
-          }
-          return state.ytTargetTime;
-        }
-        return state.virtualTime;
-      }
-
-      function seekToTime(targetSec) {
-        const clamped = Math.max(0, targetSec);
-        if (state.videoSourceType === 'local') {
-          const maxDur = Number.isFinite(els.raceVideo.duration) ? els.raceVideo.duration : clamped;
-          els.raceVideo.currentTime = Math.min(clamped, maxDur);
-        } else if (state.videoSourceType === 'youtube' && state.ytPlayer && state.ytPlayerReady && typeof state.ytPlayer.seekTo === 'function') {
-          const dur = typeof state.ytPlayer.getDuration === 'function' ? state.ytPlayer.getDuration() : 0;
-          const bounded = dur > 0 ? Math.min(clamped, dur) : clamped;
-          state.ytTargetTime = bounded;
-          state.ytPlayer.seekTo(bounded, true);
-        } else {
-          state.virtualTime = clamped;
-        }
         updateTimeDisplay();
       }
 
@@ -2628,7 +3284,7 @@
       }
 
       /* ----------------------------------------------------------------------
-         5. CSV一括読み込み＆自動抽出（UTF-8 / Shift-JIS自動判別）
+         6. CSV一括読み込み＆自動抽出（既存ストローク分析CSV・縦持ち・横持ち対応）
          ---------------------------------------------------------------------- */
       function decodeCsvBuffer(arrayBuffer) {
         try {
@@ -2744,6 +3400,143 @@
         return { splits50m: [firstVal], convertedFromCumulative: false };
       }
 
+      function tryParseStrokeAnalyzerSplitCsv(rows) {
+        let metaHeaderIdx = -1;
+        for (let i = 0; i < Math.min(rows.length, 6); i++) {
+          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
+          if (norm.includes('name') && (norm.includes('distance') || norm.includes('style') || norm.includes('event'))) {
+            metaHeaderIdx = i;
+            break;
+          }
+        }
+        if (metaHeaderIdx === -1 || metaHeaderIdx + 1 >= rows.length) return null;
+
+        const metaHeaders = rows[metaHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
+        const metaValues = rows[metaHeaderIdx + 1];
+
+        const getMeta = (keys) => {
+          const idx = metaHeaders.findIndex(h => keys.some(k => h === k || h.includes(k)));
+          return idx !== -1 && metaValues[idx] !== undefined ? metaValues[idx].trim() : '';
+        };
+
+        const athlete = getMeta(['name', '選手', '氏名']) || '不明選手';
+        const raceDate = getMeta(['date', '日付', '開催日']) || state.raceDate;
+        const rawDist = getMeta(['distance', '距離']);
+        const rawStyle = getMeta(['style', '種目', '泳法']);
+        const meet = getMeta(['event', '大会']) || state.meetName;
+        const { stroke, distance } = parseEventAndDistance(rawStyle, rawDist);
+
+        let lapHeaderIdx = -1;
+        for (let i = metaHeaderIdx + 2; i < rows.length; i++) {
+          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
+          if (norm.includes('laps') || norm.some(c => c.includes('split'))) {
+            lapHeaderIdx = i;
+            break;
+          }
+        }
+        if (lapHeaderIdx === -1) return null;
+
+        const lapHeaders = rows[lapHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
+        const idxLaps = lapHeaders.findIndex(h => h === 'laps' || h === 'lap' || h.includes('通過'));
+        const idx25 = lapHeaders.findIndex(h => h.includes('25m'));
+        const idx50 = lapHeaders.findIndex(h => h.includes('50m'));
+        const idx100 = lapHeaders.findIndex(h => h.includes('100m'));
+        const idx200 = lapHeaders.findIndex(h => h.includes('200m'));
+        const idx400 = lapHeaders.findIndex(h => h.includes('400m'));
+
+        let rtSec = null;
+        const lapDetails = [];
+
+        for (let r = lapHeaderIdx + 1; r < rows.length; r++) {
+          const cols = rows[r];
+          const label = (cols[0] || '').trim();
+          const labelLower = label.toLowerCase().replace(/\s+/g, '');
+          if (!labelLower) continue;
+
+          if (labelLower.includes('リアクション') || labelLower === 'rt' || labelLower.includes('reaction')) {
+            const rtColIdx = idxLaps !== -1 ? idxLaps : 1;
+            const parsedRt = parseSwimTimeStr(cols[rtColIdx]);
+            if (parsedRt !== null) rtSec = parsedRt;
+            continue;
+          }
+
+          const dm = labelLower.match(/^(\d+)m?$/);
+          if (dm) {
+            const distVal = Number(dm[1]);
+            const lapCum = idxLaps !== -1 ? parseSwimTimeStr(cols[idxLaps]) : parseSwimTimeStr(cols[1]);
+            const split25 = idx25 !== -1 ? parseSwimTimeStr(cols[idx25]) : null;
+            const split50 = idx50 !== -1 ? parseSwimTimeStr(cols[idx50]) : null;
+            const split100 = idx100 !== -1 ? parseSwimTimeStr(cols[idx100]) : null;
+            const split200 = idx200 !== -1 ? parseSwimTimeStr(cols[idx200]) : null;
+            const split400 = idx400 !== -1 ? parseSwimTimeStr(cols[idx400]) : null;
+
+            lapDetails.push({
+              dist: distVal,
+              lapCum,
+              split25,
+              split50,
+              split100,
+              split200,
+              split400
+            });
+          }
+        }
+
+        lapDetails.sort((a, b) => a.dist - b.dist);
+
+        let prevCum = 0;
+        let prev50Cum = 0;
+        let prev100Cum = 0;
+        for (let i = 0; i < lapDetails.length; i++) {
+          const item = lapDetails[i];
+          if (item.lapCum !== null) {
+            if (item.split25 === null && item.dist % 25 === 0) {
+              item.split25 = Number((item.lapCum - prevCum).toFixed(2));
+            }
+            if (item.dist % 50 === 0) {
+              if (item.split50 === null) {
+                item.split50 = Number((item.lapCum - prev50Cum).toFixed(2));
+              }
+              prev50Cum = item.lapCum;
+            }
+            if (item.dist % 100 === 0) {
+              if (item.split100 === null) {
+                item.split100 = Number((item.lapCum - prev100Cum).toFixed(2));
+              }
+              prev100Cum = item.lapCum;
+            }
+            prevCum = item.lapCum;
+          }
+        }
+
+        const splits50m = lapDetails
+          .filter(d => d.dist % 50 === 0 && d.split50 !== null)
+          .map(d => Number(d.split50.toFixed(2)));
+
+        const finishRow = lapDetails.find(d => d.dist === distance && d.lapCum !== null) ||
+                          [...lapDetails].reverse().find(d => d.lapCum !== null);
+        const officialSec = finishRow ? finishRow.lapCum : null;
+
+        if (splits50m.length === 0 && distance === 50 && officialSec !== null) {
+          splits50m.push(Number(officialSec.toFixed(2)));
+        }
+
+        return [{
+          id: 'csv_stroke_analyzer_1',
+          meet,
+          raceDate,
+          athlete,
+          stroke,
+          distance,
+          officialTime: officialSec !== null ? formatSwimRecord(officialSec) : '',
+          officialTimeSec: officialSec,
+          officialRt: rtSec !== null ? rtSec.toFixed(2) : '',
+          splits50m,
+          lapDetails,
+          convertedFromCumulative: false
+        }];
+      }
+
       function tryParseVerticalKeyValueCsv(rows) {
         if (rows.length < 3) return null;
         const firstColKeys = rows.map(r => (r[0] || '').toLowerCase().replace(/\s+/g, ''));
@@ -2804,164 +3597,6 @@
         return null;
       }
 
-      /**
-       * 既存ストローク分析サイト出力形式のCSVパーサー
-       * 例:
-       * 水野 吉晴_100m_バタフライ
-       * name,date,distance,style,event
-       * 水野 吉晴,1970/01/01,100,バタフライ,26東スイ招待予選
-       * (空行)
-       * ,laps,25m split,50m split,100m split
-       * リアクションタイム,0.65,,,
-       * 25m,11.62,11.62,,
-       * 50m,26.28,14.66,26.28,
-       * 75m,40.45,14.17,,
-       * 100m,55.96,15.51,29.68,55.96
-       */
-      function tryParseStrokeAnalyzerSplitCsv(rows) {
-        // メタデータヘッダー行（name, date, distance, style, event）を探す
-        let metaHeaderIdx = -1;
-        for (let i = 0; i < Math.min(rows.length, 6); i++) {
-          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
-          if (norm.includes('name') && (norm.includes('distance') || norm.includes('style') || norm.includes('event'))) {
-            metaHeaderIdx = i;
-            break;
-          }
-        }
-        if (metaHeaderIdx === -1 || metaHeaderIdx + 1 >= rows.length) return null;
-
-        const metaHeaders = rows[metaHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
-        const metaValues = rows[metaHeaderIdx + 1];
-
-        const getMeta = (keys) => {
-          const idx = metaHeaders.findIndex(h => keys.some(k => h === k || h.includes(k)));
-          return idx !== -1 && metaValues[idx] !== undefined ? metaValues[idx].trim() : '';
-        };
-
-        const athlete = getMeta(['name', '選手', '氏名']) || '不明選手';
-        const raceDate = getMeta(['date', '日付', '開催日']) || state.raceDate;
-        const rawDist = getMeta(['distance', '距離']);
-        const rawStyle = getMeta(['style', '種目', '泳法']);
-        const meet = getMeta(['event', '大会']) || state.meetName;
-        const { stroke, distance } = parseEventAndDistance(rawStyle, rawDist);
-
-        // 下部ラップヘッダー行（laps, 25m split, 50m split, 100m split...）を探す
-        let lapHeaderIdx = -1;
-        for (let i = metaHeaderIdx + 2; i < rows.length; i++) {
-          const norm = rows[i].map(c => c.toLowerCase().replace(/\s+/g, ''));
-          if (norm.includes('laps') || norm.some(c => c.includes('split'))) {
-            lapHeaderIdx = i;
-            break;
-          }
-        }
-        if (lapHeaderIdx === -1) return null;
-
-        const lapHeaders = rows[lapHeaderIdx].map(c => c.toLowerCase().replace(/\s+/g, ''));
-        const idxLaps = lapHeaders.findIndex(h => h === 'laps' || h === 'lap' || h.includes('通過'));
-        const idx25 = lapHeaders.findIndex(h => h.includes('25m'));
-        const idx50 = lapHeaders.findIndex(h => h.includes('50m'));
-        const idx100 = lapHeaders.findIndex(h => h.includes('100m'));
-        const idx200 = lapHeaders.findIndex(h => h.includes('200m'));
-        const idx400 = lapHeaders.findIndex(h => h.includes('400m'));
-
-        let rtSec = null;
-        const lapDetails = [];
-
-        for (let r = lapHeaderIdx + 1; r < rows.length; r++) {
-          const cols = rows[r];
-          const label = (cols[0] || '').trim();
-          const labelLower = label.toLowerCase().replace(/\s+/g, '');
-          if (!labelLower) continue;
-
-          // リアクションタイム行
-          if (labelLower.includes('リアクション') || labelLower === 'rt' || labelLower.includes('reaction')) {
-            const rtColIdx = idxLaps !== -1 ? idxLaps : 1;
-            const parsedRt = parseSwimTimeStr(cols[rtColIdx]);
-            if (parsedRt !== null) rtSec = parsedRt;
-            continue;
-          }
-
-          // 距離行（25m, 50m, 75m, 100m...）
-          const dm = labelLower.match(/^(\d+)m?$/);
-          if (dm) {
-            const distVal = Number(dm[1]);
-            const lapCum = idxLaps !== -1 ? parseSwimTimeStr(cols[idxLaps]) : parseSwimTimeStr(cols[1]);
-            const split25 = idx25 !== -1 ? parseSwimTimeStr(cols[idx25]) : null;
-            const split50 = idx50 !== -1 ? parseSwimTimeStr(cols[idx50]) : null;
-            const split100 = idx100 !== -1 ? parseSwimTimeStr(cols[idx100]) : null;
-            const split200 = idx200 !== -1 ? parseSwimTimeStr(cols[idx200]) : null;
-            const split400 = idx400 !== -1 ? parseSwimTimeStr(cols[idx400]) : null;
-
-            lapDetails.push({
-              dist: distVal,
-              lapCum,
-              split25,
-              split50,
-              split100,
-              split200,
-              split400
-            });
-          }
-        }
-
-        lapDetails.sort((a, b) => a.dist - b.dist);
-
-        // 空欄のスプリットがあれば累積タイム(lapCum)から自動補完
-        let prevCum = 0;
-        let prev50Cum = 0;
-        let prev100Cum = 0;
-        for (let i = 0; i < lapDetails.length; i++) {
-          const item = lapDetails[i];
-          if (item.lapCum !== null) {
-            if (item.split25 === null && item.dist % 25 === 0) {
-              item.split25 = Number((item.lapCum - prevCum).toFixed(2));
-            }
-            if (item.dist % 50 === 0) {
-              if (item.split50 === null) {
-                item.split50 = Number((item.lapCum - prev50Cum).toFixed(2));
-              }
-              prev50Cum = item.lapCum;
-            }
-            if (item.dist % 100 === 0) {
-              if (item.split100 === null) {
-                item.split100 = Number((item.lapCum - prev100Cum).toFixed(2));
-              }
-              prev100Cum = item.lapCum;
-            }
-            prevCum = item.lapCum;
-          }
-        }
-
-        // 50m区間ラップ配列を生成（純粋スイム計算用）
-        const splits50m = lapDetails
-          .filter(d => d.dist % 50 === 0 && d.split50 !== null)
-          .map(d => Number(d.split50.toFixed(2)));
-
-        // 公式記録（Finish Time）の取得：該当距離のlapCum、または最終行のlapCum
-        const finishRow = lapDetails.find(d => d.dist === distance && d.lapCum !== null) ||
-                          [...lapDetails].reverse().find(d => d.lapCum !== null);
-        const officialSec = finishRow ? finishRow.lapCum : null;
-
-        if (splits50m.length === 0 && distance === 50 && officialSec !== null) {
-          splits50m.push(Number(officialSec.toFixed(2)));
-        }
-
-        return [{
-          id: 'csv_stroke_analyzer_1',
-          meet,
-          raceDate,
-          athlete,
-          stroke,
-          distance,
-          officialTime: officialSec !== null ? formatSwimRecord(officialSec) : '',
-          officialTimeSec: officialSec,
-          officialRt: rtSec !== null ? rtSec.toFixed(2) : '',
-          splits50m,
-          lapDetails,
-          convertedFromCumulative: false
-        }];
-      }
-
       function importCsvText(csvText) {
         const cleanedText = csvText.replace(/^\uFEFF/, '');
         const rows = parseCsvRows(cleanedText);
@@ -2970,15 +3605,9 @@
           return;
         }
 
-        // 1. 既存ストローク分析サイト出力フォーマット（name,date,distance,style,event + laps/splits）を優先判定
         let parsedRaces = tryParseStrokeAnalyzerSplitCsv(rows);
+        if (!parsedRaces) parsedRaces = tryParseVerticalKeyValueCsv(rows);
 
-        // 2. 2列縦持ちキーバリュー形式を判定
-        if (!parsedRaces) {
-          parsedRaces = tryParseVerticalKeyValueCsv(rows);
-        }
-
-        // 3. 横持ち複数行テーブル形式を判定
         if (!parsedRaces) {
           const headers = rows[0].map(h => h.toLowerCase().replace(/\s+/g, ''));
           const findCol = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
@@ -3053,6 +3682,7 @@
         const race = state.csvRaces[index];
         if (!race) return;
 
+        state.editingRaceId = null;
         state.selectedCsvIndex = index;
         state.meetName = race.meet;
         state.raceDate = race.raceDate || state.raceDate;
@@ -3066,7 +3696,7 @@
         state.csvSplitConverted = Boolean(race.convertedFromCumulative);
 
         els.meetNameInput.value = state.meetName;
-        if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
+        els.raceDateInput.value = state.raceDate;
         els.athleteNameInput.value = state.athleteName;
         els.strokeSelect.value = state.stroke;
         els.distanceSelect.value = String(state.distance);
@@ -3077,42 +3707,11 @@
         renderCompareSelector();
         renderDashboard();
 
-        if (race.convertedFromCumulative) {
-          showToast(`「${race.athlete}」を反映しました（累積スプリットを50m区間ラップへ自動変換）`);
-        } else if (!suppressSingleToast || state.csvRaces.length === 1) {
-          showToast(`CSVデータを反映しました: ${race.athlete} (${race.distance}m ${getStrokeLabel(race.stroke)} / ${race.officialTime})`);
-        }
-      }
+        const kickInfo = getUnderwaterKickConfig(state.stroke);
+        const modeNote = state.stroke === 'Ba' ? '【背泳ぎ：バサロキックモードに自動切替】' : '';
 
-      function applyCsvRace(index, suppressSingleToast = false) {
-        const race = state.csvRaces[index];
-        if (!race) return;
-
-        state.selectedCsvIndex = index;
-        state.meetName = race.meet;
-        state.athleteName = race.athlete;
-        state.stroke = race.stroke;
-        state.distance = race.distance;
-        state.officialTime = race.officialTime;
-        state.officialRt = race.officialRt;
-        state.officialLaps = race.splits50m || [];
-        state.csvSplitConverted = Boolean(race.convertedFromCumulative);
-
-        els.meetNameInput.value = state.meetName;
-        els.athleteNameInput.value = state.athleteName;
-        els.strokeSelect.value = state.stroke;
-        els.distanceSelect.value = String(state.distance);
-        els.officialTimeInput.value = state.officialTime;
-        els.officialRtInput.value = state.officialRt;
-
-        renderStampPanel();
-        renderCompareSelector();
-        renderDashboard();
-
-        if (race.convertedFromCumulative) {
-          showToast(`「${race.athlete}」を反映しました（累積スプリットを50m区間ラップへ自動変換）`);
-        } else if (!suppressSingleToast || state.csvRaces.length === 1) {
-          showToast(`CSVデータを反映しました: ${race.athlete} (${race.distance}m ${getStrokeLabel(race.stroke)})`);
+        if (!suppressSingleToast || state.csvRaces.length === 1) {
+          showToast(`CSVを反映しました: ${race.athlete} (${race.distance}m ${getStrokeLabel(race.stroke)}) ${modeNote}`);
         }
       }
 
@@ -3165,7 +3764,7 @@
       }
 
       /* ----------------------------------------------------------------------
-         6. 右カラム：ガイド付き打刻リスト描画（種目・距離連動）
+         7. 右カラム：ガイド付き打刻リスト描画（背泳ぎバサロ対応）
          ---------------------------------------------------------------------- */
       function renderStampRowHtml(fieldId, label, cue) {
         const val = getFieldValue(fieldId);
@@ -3185,10 +3784,10 @@
               <button type="button" class="stamp-time-btn" data-jump-field="${fieldId}" title="${isRecorded ? 'クリックで動画のこの瞬間にジャンプ' : '未打刻'}">
                 ${isRecorded ? formatTimecode(val) : '--:--.---'}
               </button>
-              <button type="button" class="btn-row-stamp" data-stamp-field="${fieldId}" title="現在動画タイムを打刻">
+              <button type="button" class="btn-row-stamp" data-stamp-field="${fieldId}">
                 打刻
               </button>
-              <button type="button" class="btn-row-clear" data-clear-field="${fieldId}" title="クリア" ${isRecorded ? '' : 'disabled'}>
+              <button type="button" class="btn-row-clear" data-clear-field="${fieldId}" ${isRecorded ? '' : 'disabled'}>
                 ✕
               </button>
             </div>
@@ -3197,15 +3796,15 @@
       }
 
       function renderStampPanel() {
-        const isBr = (state.stroke === 'Br');
+        const kickCfg = getUnderwaterKickConfig(state.stroke);
         let html = '';
 
         // スタート局面
-        const startKickControlHtml = isBr
-          ? `<span class="pullout-badge" title="平泳ぎは1かき1けり（プルアウト）ルールのためキック回数カウント対象外">プルアウト（1かき1けり）</span>`
-          : `<label class="kick-input-box" title="15mまでに打った水中ドルフィンキックの回数">
-               <span>ドルフィンキック:</span>
-               <input type="number" id="startKicksInput" min="0" max="20" placeholder="回" value="${state.start.kicks}" />
+        const startKickControlHtml = kickCfg.isPullout
+          ? `<span class="pullout-badge">プルアウト（1かき1けり）</span>`
+          : `<label class="kick-input-box" title="15mまでに打った${kickCfg.kickName}の回数">
+               <span>${kickCfg.startInputLabel}</span>
+               <input type="number" id="startKicksInput" min="0" max="25" placeholder="回" value="${state.start.kicks}" />
                <span>回</span>
              </label>`;
 
@@ -3225,15 +3824,15 @@
           </div>
         `;
 
-        // ターン局面（距離連動）
+        // ターン局面
         const turnCount = getTurnCount();
         for (let i = 0; i < turnCount; i++) {
           const t = state.turns[i];
-          const turnKickControlHtml = isBr
+          const turnKickControlHtml = kickCfg.isPullout
             ? `<span class="pullout-badge">プルアウト（1かき1けり）</span>`
-            : `<label class="kick-input-box" title="ターン後に打った水中ドルフィンキックの回数">
-                 <span>ドルフィン:</span>
-                 <input type="number" class="turn-kicks-input" data-turn-idx="${i}" min="0" max="20" placeholder="回" value="${t.kicks}" />
+            : `<label class="kick-input-box" title="ターン後に打った${kickCfg.kickName}の回数">
+                 <span>${kickCfg.turnInputLabel}</span>
+                 <input type="number" class="turn-kicks-input" data-turn-idx="${i}" min="0" max="25" placeholder="回" value="${t.kicks}" />
                  <span>回</span>
                </label>`;
 
@@ -3260,7 +3859,6 @@
 
         els.stampScrollArea.innerHTML = html;
 
-        // 打刻リスト内イベントバインド
         els.stampScrollArea.querySelectorAll('.stamp-row').forEach(row => {
           row.addEventListener('click', (e) => {
             if (e.target.closest('button') || e.target.closest('input')) return;
@@ -3345,7 +3943,7 @@
       }
 
       /* ----------------------------------------------------------------------
-         7. 区間タイム自動計算＆純粋スイム計算
+         8. 区間タイム自動計算＆純粋スイム計算
          ---------------------------------------------------------------------- */
       function computeStartMetricsFromObj(startObj, strokeCode) {
         const rt = (startObj.gun !== null && startObj.takeoff !== null) ? (startObj.takeoff - startObj.gun) : null;
@@ -3381,7 +3979,7 @@
       }
 
       function computePureSwimLegs(distance, laps50m, startMetrics, turnMetricsList) {
-        const numLegs = Math.floor(distance / 50);
+        const numLegs = Math.floor(Number(distance) / 50);
         if (!laps50m || laps50m.length === 0) return [];
 
         const results = [];
@@ -3434,120 +4032,7 @@
       }
 
       /* ----------------------------------------------------------------------
-         8. localStorage 保存＆過去レース比較
-         ---------------------------------------------------------------------- */
-      function initSavedRaces() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            state.savedRaces = JSON.parse(raw);
-          }
-        } catch (e) {
-          state.savedRaces = [];
-        }
-
-        if (!Array.isArray(state.savedRaces) || state.savedRaces.length === 0) {
-          state.savedRaces = [
-            {
-              id: 'preset_race_1',
-              savedAt: '2026-08-15T10:30:00.000Z',
-              meetName: '2026/08/15 インカレ予選',
-              athleteName: '山田 太郎',
-              stroke: 'Fr',
-              distance: 100,
-              officialTime: '49.85',
-              officialRt: '0.62',
-              officialLaps: [23.95, 25.90],
-              turnEndMode: '15m',
-              start: { gun: 1.00, takeoff: 1.62, entry: 1.96, breakout: 5.20, mark15m: 7.08, kicks: '6' },
-              turns: [
-                { turnIndex: 1, distanceMark: 50, in5m: 22.58, touch: 24.95, pushoff: 25.58, breakout: 29.02, out15m: 31.35, kicks: '5' }
-              ]
-            },
-            {
-              id: 'preset_race_2',
-              savedAt: '2026-06-20T14:15:00.000Z',
-              meetName: '2026/06/20 春季記録会',
-              athleteName: '山田 太郎',
-              stroke: 'Fr',
-              distance: 100,
-              officialTime: '50.42',
-              officialRt: '0.65',
-              officialLaps: [24.25, 26.17],
-              turnEndMode: '15m',
-              start: { gun: 1.00, takeoff: 1.65, entry: 2.02, breakout: 5.52, mark15m: 7.42, kicks: '7' },
-              turns: [
-                { turnIndex: 1, distanceMark: 50, in5m: 22.72, touch: 25.25, pushoff: 25.96, breakout: 29.75, out15m: 32.22, kicks: '6' }
-              ]
-            }
-          ];
-          persistSavedRaces();
-        }
-      }
-
-      function persistSavedRaces() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.savedRaces));
-        } catch (e) {
-          showToast('ブラウザのストレージ保存に失敗しました');
-        }
-      }
-
-      function saveCurrentAnalysis() {
-        const turnCount = getTurnCount();
-        const record = {
-          id: `race_${Date.now()}`,
-          savedAt: new Date().toISOString(),
-          meetName: state.meetName || '無題の大会',
-          raceDate: state.raceDate || '',
-          athleteName: state.athleteName || '選手名未入力',
-          stroke: state.stroke,
-          distance: state.distance,
-          officialTime: state.officialTime,
-          officialRt: state.officialRt,
-          officialLaps: [...state.officialLaps],
-          officialLapDetails: state.officialLapDetails.map(d => ({ ...d })),
-          turnEndMode: state.turnEndMode,
-          start: { ...state.start },
-          turns: state.turns.slice(0, turnCount).map(t => ({ ...t }))
-        };
-
-        state.savedRaces.unshift(record);
-        persistSavedRaces();
-        renderCompareSelector();
-        showToast(`保存しました: ${record.athleteName} (${record.distance}m ${getStrokeLabel(record.stroke)})`);
-      }
-
-      function renderCompareSelector() {
-        const filtered = state.savedRaces.filter(r => {
-          if (!state.sameAthleteOnly) return true;
-          return r.athleteName.trim() === state.athleteName.trim() &&
-                 r.stroke === state.stroke &&
-                 Number(r.distance) === Number(state.distance);
-        });
-
-        let optionsHtml = `<option value="">-- 比較なし --</option>`;
-        filtered.forEach(r => {
-          const recStr = r.officialTime ? ` [${r.officialTime}]` : '';
-          optionsHtml += `<option value="${r.id}">${r.meetName} | ${r.athleteName} | ${r.distance}m ${getStrokeLabel(r.stroke)}${recStr}</option>`;
-        });
-
-        els.compareRaceSelect.innerHTML = optionsHtml;
-        if (filtered.some(r => r.id === state.compareRaceId)) {
-          els.compareRaceSelect.value = state.compareRaceId;
-        } else {
-          state.compareRaceId = '';
-          els.compareRaceSelect.value = '';
-        }
-      }
-
-      function getComparisonRace() {
-        if (!state.compareRaceId) return null;
-        return state.savedRaces.find(r => r.id === state.compareRaceId) || null;
-      }
-
-      /* ----------------------------------------------------------------------
-         9. 下部ダッシュボード＆2段積み上げ横棒グラフ描画
+         9. 共通ダッシュボードHTMLビルダー（分析画面 ＆ 結果詳細画面で共用）
          ---------------------------------------------------------------------- */
       function renderDeltaBadgeHtml(curVal, refVal) {
         if (curVal === null || refVal === null || Number.isNaN(curVal) || Number.isNaN(refVal)) return '';
@@ -3591,11 +4076,7 @@
         };
 
         if (!refSegs) {
-          return `
-            <div class="bar-compare-stack">
-              ${buildSingleBar(curValid, curDenom, false)}
-            </div>
-          `;
+          return `<div class="bar-compare-stack">${buildSingleBar(curValid, curDenom, false)}</div>`;
         }
 
         return `
@@ -3635,21 +4116,17 @@
         `;
       }
 
-      function renderDashboard() {
-        const refRace = getComparisonRace();
-        let html = '';
+      function buildRaceSummaryAndCardsHtml(raceData, refRace = null, options = { showHeaderSummary: true }) {
+        const kickCfg = getUnderwaterKickConfig(raceData.stroke);
+        const lapChipsHtml = (raceData.officialLaps && raceData.officialLaps.length > 0)
+          ? raceData.officialLaps.map((v, idx) => `<span class="lap-chip num"><span>${idx * 50}-${(idx + 1) * 50}m</span>${Number(v).toFixed(2)}s</span>`).join('')
+          : `<span style="font-size:11px; color:var(--text-muted);">50mラップ未設定</span>`;
 
-        // 0. CSV公式データ＆ラップ一覧サマリーパネル
-        const lapChipsHtml = (state.officialLaps && state.officialLaps.length > 0)
-          ? state.officialLaps.map((v, idx) => `<span class="lap-chip num"><span>${idx * 50}-${(idx + 1) * 50}m</span>${v.toFixed(2)}s</span>`).join('')
-          : `<span style="font-size:11px; color:var(--text-muted);">ラップ未設定（CSV読込で自動反映）</span>`;
-
-        // 25m刻みの詳細ラップテーブル（CSVから25m/50m/100m splitが読み込まれている場合に表示）
         let detailTableHtml = '';
-        if (state.officialLapDetails && state.officialLapDetails.length > 0) {
-          const has100 = state.officialLapDetails.some(d => d.split100 !== null && d.split100 !== undefined);
-          const has200 = state.officialLapDetails.some(d => d.split200 !== null && d.split200 !== undefined);
-          const has400 = state.officialLapDetails.some(d => d.split400 !== null && d.split400 !== undefined);
+        if (raceData.officialLapDetails && raceData.officialLapDetails.length > 0) {
+          const has100 = raceData.officialLapDetails.some(d => d.split100 !== null && d.split100 !== undefined);
+          const has200 = raceData.officialLapDetails.some(d => d.split200 !== null && d.split200 !== undefined);
+          const has400 = raceData.officialLapDetails.some(d => d.split400 !== null && d.split400 !== undefined);
 
           detailTableHtml = `
             <div class="csv-detail-table-wrap">
@@ -3666,12 +4143,12 @@
                   </tr>
                 </thead>
                 <tbody>
-                  ${state.officialLapDetails.map(d => `
+                  ${raceData.officialLapDetails.map(d => `
                     <tr>
                       <td class="dist-col">${d.dist}m</td>
                       <td>${d.lapCum !== null && d.lapCum !== undefined ? formatSwimRecord(d.lapCum) : '-'}</td>
-                      <td>${d.split25 !== null && d.split25 !== undefined ? d.split25.toFixed(2) : '-'}</td>
-                      <td class="split50-col">${d.split50 !== null && d.split50 !== undefined ? d.split50.toFixed(2) : '-'}</td>
+                      <td>${d.split25 !== null && d.split25 !== undefined ? Number(d.split25).toFixed(2) : '-'}</td>
+                      <td class="split50-col">${d.split50 !== null && d.split50 !== undefined ? Number(d.split50).toFixed(2) : '-'}</td>
                       ${has100 ? `<td>${d.split100 !== null && d.split100 !== undefined ? formatSwimRecord(d.split100) : '-'}</td>` : ''}
                       ${has200 ? `<td>${d.split200 !== null && d.split200 !== undefined ? formatSwimRecord(d.split200) : '-'}</td>` : ''}
                       ${has400 ? `<td>${d.split400 !== null && d.split400 !== undefined ? formatSwimRecord(d.split400) : '-'}</td>` : ''}
@@ -3683,26 +4160,25 @@
           `;
         }
 
-        els.csvSummaryBanner.innerHTML = `
+        const summaryHtml = options.showHeaderSummary ? `
           <div class="csv-summary-panel">
             <div class="csv-summary-main">
-              <span class="csv-tag-badge">公式リザルト連携</span>
-              <span><strong>${state.meetName || '大会名未設定'}</strong>${state.raceDate ? ` <span class="num" style="color:var(--text-secondary);">(${state.raceDate})</span>` : ''}</span>
-              <span>選手: <strong>${state.athleteName || '未設定'}</strong></span>
-              <span>種目: <strong>${state.distance}m ${getStrokeLabel(state.stroke)} (${state.stroke})</strong></span>
-              <span>公式RT: <strong class="num">${state.officialRt ? state.officialRt + 's' : '--'}</strong></span>
-              <span>公式記録: <strong class="num" style="color:var(--accent-aqua-light);">${state.officialTime || '--'}</strong></span>
-              ${state.csvSplitConverted ? `<span class="csv-converted-badge" title="CSVの累積通過タイムを自動的に50mごとの区間ラップへ変換しました">累積スプリット自動変換済</span>` : ''}
+              <span class="csv-tag-badge">公式リザルト・ラップ</span>
+              <span><strong>${raceData.meetName || '大会名未設定'}</strong>${raceData.raceDate ? ` <span class="num" style="color:var(--text-secondary);">(${raceData.raceDate})</span>` : ''}</span>
+              <span>選手: <strong>${raceData.athleteName || '未設定'}</strong></span>
+              <span>種目: <strong>${raceData.distance}m ${getStrokeLabel(raceData.stroke)} (${raceData.stroke})</strong></span>
+              <span>公式RT: <strong class="num">${raceData.officialRt ? raceData.officialRt + 's' : '--'}</strong></span>
+              <span>公式記録: <strong class="num" style="color:var(--accent-aqua-light);">${raceData.officialTime || '--'}</strong></span>
             </div>
             <div class="csv-lap-chips">
               ${lapChipsHtml}
             </div>
             ${detailTableHtml}
           </div>
-        `;
+        ` : (detailTableHtml ? `<div class="csv-summary-panel">${detailTableHtml}</div>` : '');
 
-        // 1. スタートカード
-        const curSt = computeStartMetricsFromObj(state.start, state.stroke);
+        // スタートカード
+        const curSt = computeStartMetricsFromObj(raceData.start, raceData.stroke);
         const refSt = refRace ? computeStartMetricsFromObj(refRace.start, refRace.stroke) : null;
 
         const curStSegs = [
@@ -3718,7 +4194,7 @@
           { label: 'スイム', value: refSt.swim, color: 'var(--seg-swim)' }
         ] : null;
 
-        const parsedOfficialRt = parseSwimTimeStr(state.officialRt);
+        const parsedOfficialRt = parseSwimTimeStr(raceData.officialRt);
         let rtOfficialTag = null;
         if (parsedOfficialRt !== null) {
           if (curSt.rt !== null) {
@@ -3730,12 +4206,16 @@
           }
         }
 
-        html += `
+        const startKickTag = curSt.secPerKick
+          ? kickCfg.formatTag(curSt.kicksNum, curSt.secPerKick)
+          : (curSt.kicksNum > 0 ? `${kickCfg.shortName} ${curSt.kicksNum}回` : null);
+
+        let cardsHtml = `
           <article class="analysis-card">
             <div class="card-top">
               <div>
                 <span class="card-badge">START (0m → 15m)</span>
-                <div class="card-subtitle">${getStrokeLabel(state.stroke)} スタート局面</div>
+                <div class="card-subtitle">${getStrokeLabel(raceData.stroke)} スタート局面（${kickCfg.kickName}）</div>
               </div>
               <div class="hero-metric">
                 <div class="hero-metric-label">スタート15m合計</div>
@@ -3753,30 +4233,27 @@
             <div class="breakdown-grid">
               ${renderMetricCellHtml('リアクションタイム (RT)', curSt.rt, refSt ? refSt.rt : null, 'var(--seg-rt)', rtOfficialTag)}
               ${renderMetricCellHtml('空中時間 (フライト)', curSt.air, refSt ? refSt.air : null, 'var(--seg-air)')}
-              ${renderMetricCellHtml(
-                state.stroke === 'Br' ? '水中プルアウト時間' : '水中ドルフィン時間',
-                curSt.uw,
-                refSt ? refSt.uw : null,
-                'var(--seg-uw)',
-                curSt.secPerKick ? `${curSt.kicksNum}回 / 1蹴:${curSt.secPerKick.toFixed(2)}s` : null
-              )}
+              ${renderMetricCellHtml(kickCfg.startUwMetricTitle, curSt.uw, refSt ? refSt.uw : null, 'var(--seg-uw)', startKickTag)}
               ${renderMetricCellHtml('浮き上がり〜15m', curSt.swim, refSt ? refSt.swim : null, 'var(--seg-swim)')}
             </div>
           </article>
         `;
 
-        // 2. 各ターンカード
-        const turnCount = getTurnCount();
+        // ターンカード
+        const turnEndMode = raceData.turnEndMode || state.turnEndMode || '15m';
+        const turnCount = getTurnCountForDistance(raceData.distance);
         const curTurnMetricsList = [];
         const refTurnMetricsList = [];
 
         for (let i = 0; i < turnCount; i++) {
-          const curT = state.turns[i];
-          const curTm = computeTurnMetricsFromObj(curT, state.turnEndMode, state.stroke);
+          const curT = (raceData.turns && raceData.turns[i]) ? raceData.turns[i] : {
+            turnIndex: i + 1, distanceMark: (i + 1) * 50, in5m: null, touch: null, pushoff: null, breakout: null, out15m: null, kicks: ''
+          };
+          const curTm = computeTurnMetricsFromObj(curT, turnEndMode, raceData.stroke);
           curTurnMetricsList.push(curTm);
 
           const refT = (refRace && refRace.turns && refRace.turns[i]) ? refRace.turns[i] : null;
-          const refTm = refT ? computeTurnMetricsFromObj(refT, state.turnEndMode, refRace.stroke) : null;
+          const refTm = refT ? computeTurnMetricsFromObj(refT, turnEndMode, refRace.stroke) : null;
           if (refTm) refTurnMetricsList.push(refTm);
 
           const curSegs = [
@@ -3792,7 +4269,11 @@
             ...(refTm.is15m ? [{ label: 'スイム', value: refTm.swim, color: 'var(--seg-swim)' }] : [])
           ] : null;
 
-          html += `
+          const turnKickTag = curTm.secPerKick
+            ? kickCfg.formatTag(curTm.kicksNum, curTm.secPerKick)
+            : (curTm.kicksNum > 0 ? `${kickCfg.shortName} ${curTm.kicksNum}回` : null);
+
+          cardsHtml += `
             <article class="analysis-card turn-card">
               <div class="card-top">
                 <div>
@@ -3815,13 +4296,7 @@
               <div class="breakdown-grid">
                 ${renderMetricCellHtml('アプローチ (IN 5m)', curTm.approach, refTm ? refTm.approach : null, 'var(--seg-air)')}
                 ${renderMetricCellHtml('壁滞在時間', curTm.wall, refTm ? refTm.wall : null, 'var(--seg-rt)')}
-                ${renderMetricCellHtml(
-                  state.stroke === 'Br' ? 'ターン後プルアウト' : 'ターン後水中時間',
-                  curTm.uw,
-                  refTm ? refTm.uw : null,
-                  'var(--seg-uw)',
-                  curTm.secPerKick ? `${curTm.kicksNum}回 / 1蹴:${curTm.secPerKick.toFixed(2)}s` : null
-                )}
+                ${renderMetricCellHtml(kickCfg.turnUwMetricTitle, curTm.uw, refTm ? refTm.uw : null, 'var(--seg-uw)', turnKickTag)}
                 ${curTm.is15m
                   ? renderMetricCellHtml('ブレイクアウト〜15m', curTm.swim, refTm ? refTm.swim : null, 'var(--seg-swim)')
                   : renderMetricCellHtml('ブレイクアウト〜15m', null, null, 'var(--border-subtle)', null, '浮き上がり基準')
@@ -3831,8 +4306,8 @@
           `;
         }
 
-        // 3. 公式ラップ連携「純粋なスイム区間タイム＆平均泳速」カード
-        const pureLegs = computePureSwimLegs(state.distance, state.officialLaps, curSt, curTurnMetricsList);
+        // 純粋スイムカード
+        const pureLegs = computePureSwimLegs(raceData.distance, raceData.officialLaps, curSt, curTurnMetricsList);
         const refPureLegs = (refRace && refRace.officialLaps)
           ? computePureSwimLegs(refRace.distance, refRace.officialLaps, refSt, refTurnMetricsList)
           : [];
@@ -3845,11 +4320,11 @@
             ? refPureLegs.reduce((acc, l) => acc + l.pureTime, 0)
             : null;
 
-          html += `
+          cardsHtml += `
             <article class="analysis-card swim-card">
               <div class="card-top">
                 <div>
-                  <span class="card-badge">PURE SWIM ANALYSIS (CSVラップ連携)</span>
+                  <span class="card-badge">PURE SWIM ANALYSIS (ラップ連携)</span>
                   <div class="card-subtitle">公式ラップ − 非泳(スタート/ターン)時間 ＝ 純粋スイム</div>
                 </div>
                 <div class="hero-metric">
@@ -3880,17 +4355,943 @@
           `;
         }
 
-        els.dashboardCardsGrid.innerHTML = html;
+        return { summaryHtml, cardsHtml };
+      }
+
+      function renderDashboard() {
+        const refRace = getComparisonRace();
+        const currentRaceData = {
+          meetName: state.meetName,
+          raceDate: state.raceDate,
+          athleteName: state.athleteName,
+          stroke: state.stroke,
+          distance: state.distance,
+          officialTime: state.officialTime,
+          officialRt: state.officialRt,
+          officialLaps: state.officialLaps,
+          officialLapDetails: state.officialLapDetails,
+          turnEndMode: state.turnEndMode,
+          start: state.start,
+          turns: state.turns
+        };
+
+        const { summaryHtml, cardsHtml } = buildRaceSummaryAndCardsHtml(currentRaceData, refRace, { showHeaderSummary: true });
+        els.csvSummaryBanner.innerHTML = summaryHtml;
+        els.dashboardCardsGrid.innerHTML = cardsHtml;
       }
 
       /* ----------------------------------------------------------------------
-         10. デモ数値＆サンプルCSV出力＆JSON管理
+         10. 「分析したレースを見る」4階層ドリルダウン画面描画
+         ---------------------------------------------------------------------- */
+      function renderResultsView() {
+        const drill = state.resultsDrill;
+        els.resultsMainContainer.classList.toggle('is-detail-wide', drill.level === 'detail');
+
+        // 戻るボタン＆パンくずリスト制御
+        if (drill.level === 'athletes') {
+          els.resultsBackLabel.textContent = '← ホームへ戻る';
+          els.resultsBreadcrumb.innerHTML = `<span>選手一覧</span>`;
+        } else if (drill.level === 'events') {
+          els.resultsBackLabel.textContent = '← 選手一覧へ';
+          els.resultsBreadcrumb.innerHTML = `
+            <button type="button" class="breadcrumb-link" data-bc="athletes">選手一覧</button>
+            <span>/</span>
+            <span style="color:var(--text-primary); font-weight:700;">${drill.athleteName}</span>
+          `;
+        } else if (drill.level === 'races') {
+          els.resultsBackLabel.textContent = `← ${drill.athleteName} の種目へ`;
+          els.resultsBreadcrumb.innerHTML = `
+            <button type="button" class="breadcrumb-link" data-bc="athletes">選手一覧</button>
+            <span>/</span>
+            <button type="button" class="breadcrumb-link" data-bc="events">${drill.athleteName}</button>
+            <span>/</span>
+            <span style="color:var(--text-primary); font-weight:700;">${drill.distance}m ${getStrokeLabel(drill.stroke)}</span>
+          `;
+        } else if (drill.level === 'detail') {
+          els.resultsBackLabel.textContent = `← ${drill.distance}m ${getStrokeLabel(drill.stroke)} 一覧へ`;
+          els.resultsBreadcrumb.innerHTML = `
+            <button type="button" class="breadcrumb-link" data-bc="athletes">選手一覧</button>
+            <span>/</span>
+            <button type="button" class="breadcrumb-link" data-bc="events">${drill.athleteName}</button>
+            <span>/</span>
+            <button type="button" class="breadcrumb-link" data-bc="races">${drill.distance}m ${getStrokeLabel(drill.stroke)}</button>
+            <span>/</span>
+            <span style="color:var(--text-primary); font-weight:700;">分析詳細</span>
+          `;
+        }
+
+        els.resultsBreadcrumb.querySelectorAll('[data-bc]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const targetLevel = btn.dataset.bc;
+            state.resultsDrill.level = targetLevel;
+            renderResultsView();
+          });
+        });
+
+        // データ0件の場合
+        if (state.savedRaces.length === 0) {
+          els.resultsMainContainer.innerHTML = `
+            <div class="drilldown-header">
+              <h1 class="drilldown-title">選手を選択</h1>
+            </div>
+            <div class="empty-state-box">
+              <div style="font-size:16px; font-weight:700;">まだ保存された分析データがありません</div>
+              <div style="font-size:13px; color:var(--text-secondary);">「レース分析をする」から打刻・保存するか、サンプルデータを追加して表示を確認できます。</div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:6px;">
+                <button type="button" id="btnEmptyGoAnalyze" class="btn btn-primary">レース分析をする</button>
+                <button type="button" id="btnEmptyAddSamples" class="btn btn-secondary">サンプルデータを追加</button>
+              </div>
+            </div>
+          `;
+          document.getElementById('btnEmptyGoAnalyze').addEventListener('click', () => navigateTo('analyze'));
+          document.getElementById('btnEmptyAddSamples').addEventListener('click', () => {
+            appendSampleRacesToStorage();
+            renderResultsView();
+          });
+          return;
+        }
+
+        // 第1階層：選手を選択
+        if (drill.level === 'athletes') {
+          const athleteMap = new Map();
+          state.savedRaces.forEach(r => {
+            const name = (r.athleteName || '選手名未設定').trim();
+            athleteMap.set(name, (athleteMap.get(name) || 0) + 1);
+          });
+
+          const q = (drill.athleteSearchQuery || '').trim().toLowerCase();
+          const allAthletes = Array.from(athleteMap.entries());
+          const athletes = q
+            ? allAthletes.filter(([name]) => name.toLowerCase().includes(q))
+            : allAthletes;
+
+          els.resultsMainContainer.innerHTML = `
+            <div class="drilldown-header">
+              <h1 class="drilldown-title">選手を選択</h1>
+              <span class="drilldown-sub">全 ${allAthletes.length} 名 / 計 ${state.savedRaces.length} 件</span>
+            </div>
+            <div class="athlete-search-wrap">
+              <input type="text" id="athleteSearchInput" class="athlete-search-input" placeholder="選手名で検索..." value="${(drill.athleteSearchQuery || '').replace(/"/g, '&quot;')}" />
+            </div>
+            <div class="drilldown-list">
+              ${athletes.length > 0 ? athletes.map(([name, count]) => `
+                <button type="button" class="drilldown-card" data-select-athlete="${name.replace(/"/g, '&quot;')}">
+                  <div class="drilldown-card-body">
+                    <div class="drilldown-card-title">${name}</div>
+                    <div class="drilldown-card-meta">登録データ: ${count}件</div>
+                  </div>
+                  <span class="drilldown-arrow" aria-hidden="true">▶</span>
+                </button>
+              `).join('') : `
+                <div class="empty-state-box">
+                  <div style="font-size:14px; color:var(--text-secondary);">該当する選手が見つかりません</div>
+                </div>
+              `}
+            </div>
+          `;
+
+          const searchEl = document.getElementById('athleteSearchInput');
+          if (searchEl) {
+            searchEl.addEventListener('input', (e) => {
+              const cursorPos = e.target.selectionStart;
+              state.resultsDrill.athleteSearchQuery = e.target.value;
+              renderResultsView();
+              const reRendered = document.getElementById('athleteSearchInput');
+              if (reRendered) {
+                reRendered.focus();
+                reRendered.setSelectionRange(cursorPos, cursorPos);
+              }
+            });
+          }
+
+          els.resultsMainContainer.querySelectorAll('[data-select-athlete]').forEach(card => {
+            card.addEventListener('click', () => {
+              state.resultsDrill.athleteName = card.dataset.selectAthlete;
+              state.resultsDrill.level = 'events';
+              renderResultsView();
+            });
+          });
+          return;
+        }
+
+        // 第2階層：〇〇 〇〇 の種目
+        if (drill.level === 'events') {
+          const athleteRaces = state.savedRaces.filter(r => (r.athleteName || '').trim() === drill.athleteName);
+          const eventMap = new Map();
+          athleteRaces.forEach(r => {
+            const key = `${r.distance}_${r.stroke}`;
+            if (!eventMap.has(key)) {
+              eventMap.set(key, { distance: Number(r.distance), stroke: r.stroke, count: 0 });
+            }
+            eventMap.get(key).count += 1;
+          });
+
+          const strokeOrder = { Fr: 1, Ba: 2, Br: 3, Fly: 4, IM: 5 };
+          const events = Array.from(eventMap.values()).sort((a, b) => {
+            if (a.distance !== b.distance) return a.distance - b.distance;
+            return (strokeOrder[a.stroke] || 9) - (strokeOrder[b.stroke] || 9);
+          });
+
+          els.resultsMainContainer.innerHTML = `
+            <div class="drilldown-header">
+              <h1 class="drilldown-title">${drill.athleteName} の種目</h1>
+              <span class="drilldown-sub">${events.length} 種目</span>
+            </div>
+            <div class="drilldown-list">
+              ${events.map(ev => `
+                <button type="button" class="drilldown-card" data-select-dist="${ev.distance}" data-select-stroke="${ev.stroke}">
+                  <div class="drilldown-card-body">
+                    <div class="drilldown-card-title">${ev.distance}m ${getStrokeLabel(ev.stroke)}</div>
+                    <div class="drilldown-card-meta">データ: ${ev.count}件</div>
+                  </div>
+                  <span class="drilldown-arrow" aria-hidden="true">▶</span>
+                </button>
+              `).join('')}
+            </div>
+          `;
+
+          els.resultsMainContainer.querySelectorAll('[data-select-dist]').forEach(card => {
+            card.addEventListener('click', () => {
+              state.resultsDrill.distance = Number(card.dataset.selectDist);
+              state.resultsDrill.stroke = card.dataset.selectStroke;
+              state.resultsDrill.level = 'races';
+              renderResultsView();
+            });
+          });
+          return;
+        }
+
+        // 第3階層：〇〇m 〇〇（レース一覧）
+        if (drill.level === 'races') {
+          const matchingRaces = state.savedRaces.filter(r =>
+            (r.athleteName || '').trim() === drill.athleteName &&
+            Number(r.distance) === Number(drill.distance) &&
+            r.stroke === drill.stroke
+          );
+
+          els.resultsMainContainer.innerHTML = `
+            <div class="drilldown-header">
+              <h1 class="drilldown-title">${drill.distance}m ${getStrokeLabel(drill.stroke)}</h1>
+              <span class="drilldown-sub">${drill.athleteName} ｜ ${matchingRaces.length} 件</span>
+            </div>
+            <div class="drilldown-list">
+              ${matchingRaces.map(r => {
+                const dateDisplay = r.raceDate || (r.savedAt ? r.savedAt.slice(0, 10) : '日付未設定');
+                const timeDisplay = r.officialTime || '--.--';
+                const hasYt = Boolean((r.youtubeUrl && r.youtubeUrl.trim()) || r.youtubeVideoId);
+                return `
+                  <button type="button" class="drilldown-card" data-select-race-id="${r.id}">
+                    <div class="drilldown-card-body">
+                      <div class="drilldown-card-title">
+                        <span>${r.meetName || '大会名未設定'}</span>
+                        ${hasYt ? `<span class="yt-linked-badge">▶ YouTube動画あり</span>` : ''}
+                      </div>
+                      <div class="drilldown-card-meta num">${dateDisplay} | Time: ${timeDisplay}</div>
+                    </div>
+                    <span class="drilldown-arrow" aria-hidden="true">▶</span>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          `;
+
+          els.resultsMainContainer.querySelectorAll('[data-select-race-id]').forEach(card => {
+            card.addEventListener('click', () => {
+              state.resultsDrill.raceId = card.dataset.selectRaceId;
+              state.resultsDrill.detailCompareRaceId = '';
+              state.resultsDrill.showInlinePlayer = false;
+              state.resultsDrill.inlineStartSec = 0;
+              state.resultsDrill.level = 'detail';
+              renderResultsView();
+            });
+          });
+          return;
+        }
+
+        // 第4階層：レース分析結果の詳細ビュー
+        if (drill.level === 'detail') {
+          const race = state.savedRaces.find(r => r.id === drill.raceId);
+          if (!race) {
+            state.resultsDrill.level = 'races';
+            renderResultsView();
+            return;
+          }
+
+          // 同選手・同種目の他レース（比較用プルダウン）
+          const peerRaces = state.savedRaces.filter(r =>
+            r.id !== race.id &&
+            (r.athleteName || '').trim() === (race.athleteName || '').trim() &&
+            r.stroke === race.stroke &&
+            Number(r.distance) === Number(race.distance)
+          );
+
+          const refRace = drill.detailCompareRaceId
+            ? (peerRaces.find(r => r.id === drill.detailCompareRaceId) || null)
+            : null;
+
+          const { summaryHtml, cardsHtml } = buildRaceSummaryAndCardsHtml(race, refRace, { showHeaderSummary: false });
+          const kickCfg = getUnderwaterKickConfig(race.stroke);
+
+          // 保存されたYouTubeリンク情報の解決
+          const resolvedYtUrl = (race.youtubeUrl && race.youtubeUrl.trim())
+            ? race.youtubeUrl.trim()
+            : (race.youtubeVideoId ? `https://www.youtube.com/watch?v=${race.youtubeVideoId}` : '');
+          const parsedYt = resolvedYtUrl ? parseYouTubeUrl(resolvedYtUrl) : null;
+          const resolvedVideoId = race.youtubeVideoId || (parsedYt ? parsedYt.videoId : '');
+
+          let ytPanelHtml = '';
+          if (resolvedYtUrl) {
+            const firstStamp = getFirstRecordedTimestamp(race);
+            const embedStart = drill.inlineStartSec > 0
+              ? Math.floor(drill.inlineStartSec)
+              : (firstStamp !== null ? Math.floor(firstStamp) : (race.youtubeStartSeconds || (parsedYt ? parsedYt.startSeconds : 0)));
+
+            ytPanelHtml = `
+              <div class="detail-yt-panel">
+                <div class="detail-yt-header">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="yt-linked-badge" style="margin-left:0;">▶ 紐付け済みYouTube動画</span>
+                    <span style="font-size:12px; color:var(--text-secondary);">ID: <strong class="num">${resolvedVideoId || '-'}</strong></span>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <button type="button" id="btnDetailCopyYtUrl" class="btn btn-secondary">URLをコピー</button>
+                    <a href="${resolvedYtUrl.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="text-decoration:none;">YouTubeで開く ↗</a>
+                    ${resolvedVideoId ? `
+                      <button type="button" id="btnDetailToggleInlineYt" class="btn" style="background:var(--accent-rose); color:#fff;">
+                        ${drill.showInlinePlayer ? '動画プレビューを閉じる' : 'この画面で動画を再生する'}
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+                <div class="detail-yt-url-row">
+                  <div class="detail-yt-url-code" title="${resolvedYtUrl.replace(/"/g, '&quot;')}">${resolvedYtUrl}</div>
+                </div>
+                ${(drill.showInlinePlayer && resolvedVideoId) ? `
+                  <div class="detail-inline-player-wrap">
+                    <iframe
+                      src="https://www.youtube.com/embed/${resolvedVideoId}?rel=0&playsinline=1${embedStart > 0 ? `&start=${embedStart}` : ''}"
+                      title="Race YouTube Preview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerpolicy="strict-origin-when-cross-origin"
+                      allowfullscreen>
+                    </iframe>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          } else {
+            ytPanelHtml = `
+              <div class="detail-yt-panel" style="border-left-color: var(--border-strong);">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+                  <span style="font-size:12.5px; color:var(--text-secondary);">YouTubeリンクは登録されていません（「分析画面に読み込んで再編集する」からリンクを紐付け・保存できます）</span>
+                </div>
+              </div>
+            `;
+          }
+
+          els.resultsMainContainer.innerHTML = `
+            <div class="detail-hero-card">
+              <div class="detail-hero-info">
+                <div class="detail-event-tag">
+                  <span>${race.athleteName}</span>
+                  <span>・</span>
+                  <span>${race.distance}m ${getStrokeLabel(race.stroke)} (${race.stroke})</span>
+                  <span>・</span>
+                  <span>水中動作: ${kickCfg.kickName}</span>
+                </div>
+                <h1 class="detail-meet-heading">${race.meetName || '大会名未設定'}</h1>
+                <div class="detail-stats-row">
+                  <span>開催日: <strong class="num">${race.raceDate || '--'}</strong></span>
+                  <span>公式RT: <strong class="num">${race.officialRt ? race.officialRt + 's' : '--'}</strong></span>
+                  <span>公式記録: <strong class="num" style="color:var(--accent-aqua-light); font-size:15px;">${race.officialTime || '--.--'}</strong></span>
+                </div>
+              </div>
+
+              <div class="detail-actions-row">
+                <button type="button" id="btnDetailEditInAnalyzer" class="btn btn-primary">
+                  ${resolvedYtUrl ? '動画付きで分析画面に再読込' : '分析画面に読み込んで再編集する'}
+                </button>
+                <button type="button" id="btnDetailDeleteRace" class="btn btn-danger">
+                  削除する
+                </button>
+              </div>
+            </div>
+
+            ${ytPanelHtml}
+
+            <div class="detail-compare-bar">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <label for="detailCompareSelect" style="font-size:12.5px; font-weight:700; color:var(--text-secondary);">過去レースと比較（2段グラフ）:</label>
+                <select id="detailCompareSelect">
+                  <option value="">-- 比較なし --</option>
+                  ${peerRaces.map(pr => `
+                    <option value="${pr.id}" ${pr.id === drill.detailCompareRaceId ? 'selected' : ''}>
+                      ${pr.meetName} (${pr.raceDate || ''}) | Time: ${pr.officialTime || '--.--'}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div class="legend-global">
+                <div class="legend-item"><span class="legend-dot" style="background: var(--seg-rt);"></span>RT / 壁滞在</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--seg-air);"></span>空中 / IN 5m</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--seg-uw);"></span>${kickCfg.shortName}</div>
+                <div class="legend-item"><span class="legend-dot" style="background: var(--seg-swim);"></span>浮き上がり後</div>
+              </div>
+            </div>
+
+            ${summaryHtml}
+
+            <div class="cards-grid">
+              ${cardsHtml}
+            </div>
+          `;
+
+          const copyYtBtn = document.getElementById('btnDetailCopyYtUrl');
+          if (copyYtBtn && resolvedYtUrl) {
+            copyYtBtn.addEventListener('click', () => {
+              const tmp = document.createElement('textarea');
+              tmp.value = resolvedYtUrl;
+              document.body.appendChild(tmp);
+              tmp.select();
+              document.execCommand('copy');
+              document.body.removeChild(tmp);
+              showToast('YouTubeのURLをコピーしました');
+            });
+          }
+
+          const toggleInlineBtn = document.getElementById('btnDetailToggleInlineYt');
+          if (toggleInlineBtn) {
+            toggleInlineBtn.addEventListener('click', () => {
+              state.resultsDrill.showInlinePlayer = !state.resultsDrill.showInlinePlayer;
+              renderResultsView();
+            });
+          }
+
+          document.getElementById('detailCompareSelect').addEventListener('change', (e) => {
+            state.resultsDrill.detailCompareRaceId = e.target.value;
+            renderResultsView();
+          });
+
+          document.getElementById('btnDetailEditInAnalyzer').addEventListener('click', () => {
+            loadRaceIntoAnalyzer(race);
+          });
+
+          document.getElementById('btnDetailDeleteRace').addEventListener('click', () => {
+            openDeleteConfirmModal(race);
+          });
+        }
+      }
+
+      function getFirstRecordedTimestamp(race) {
+        if (!race) return null;
+        if (race.start) {
+          const startKeys = ['gun', 'takeoff', 'entry', 'breakout', 'mark15m'];
+          for (const k of startKeys) {
+            if (race.start[k] !== null && race.start[k] !== undefined && !Number.isNaN(Number(race.start[k]))) {
+              return Number(race.start[k]);
+            }
+          }
+        }
+        if (Array.isArray(race.turns)) {
+          const turnKeys = ['in5m', 'touch', 'pushoff', 'breakout', 'out15m'];
+          for (const t of race.turns) {
+            for (const k of turnKeys) {
+              if (t && t[k] !== null && t[k] !== undefined && !Number.isNaN(Number(t[k]))) {
+                return Number(t[k]);
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function loadRaceIntoAnalyzer(race) {
+        state.editingRaceId = race.id;
+        state.meetName = race.meetName || '';
+        state.raceDate = race.raceDate || '';
+        state.athleteName = race.athleteName || '';
+        state.stroke = race.stroke || 'Fr';
+        state.distance = Number(race.distance) || 100;
+        state.officialTime = race.officialTime || '';
+        state.officialRt = race.officialRt || '';
+        state.officialLaps = Array.isArray(race.officialLaps) ? [...race.officialLaps] : [];
+        state.officialLapDetails = Array.isArray(race.officialLapDetails) ? race.officialLapDetails.map(d => ({ ...d })) : [];
+        state.turnEndMode = race.turnEndMode || '15m';
+
+        state.start = {
+          gun: null, takeoff: null, entry: null, breakout: null, mark15m: null, kicks: '',
+          ...(race.start || {})
+        };
+        state.turns = Array.from({ length: 7 }, (_, i) => ({
+          turnIndex: i + 1,
+          distanceMark: (i + 1) * 50,
+          in5m: null,
+          touch: null,
+          pushoff: null,
+          breakout: null,
+          out15m: null,
+          kicks: '',
+          ...(race.turns && race.turns[i] ? race.turns[i] : {})
+        }));
+
+        els.meetNameInput.value = state.meetName;
+        els.raceDateInput.value = state.raceDate;
+        els.athleteNameInput.value = state.athleteName;
+        els.strokeSelect.value = state.stroke;
+        els.distanceSelect.value = String(state.distance);
+        els.officialTimeInput.value = state.officialTime;
+        els.officialRtInput.value = state.officialRt;
+        els.turnEndModeSelect.value = state.turnEndMode;
+
+        state.activeFieldId = 'start.gun';
+
+        // YouTubeリンクの完全復元処理
+        const restoredUrl = (race.youtubeUrl && race.youtubeUrl.trim())
+          ? race.youtubeUrl.trim()
+          : (race.youtubeVideoId ? `https://www.youtube.com/watch?v=${race.youtubeVideoId}` : '');
+
+        navigateTo('analyze');
+
+        if (restoredUrl) {
+          switchSourceTab('youtube');
+          els.ytUrlInput.value = restoredUrl;
+          state.youtubeUrl = restoredUrl;
+
+          const firstStamp = getFirstRecordedTimestamp(race);
+          loadYouTubeFromInput(restoredUrl, {
+            autoSeekTime: firstStamp,
+            silentToast: true
+          });
+          showToast(`「${race.athleteName} / ${race.meetName}」とYouTube動画を復元しました`);
+        } else {
+          resetVideoPlayerToEmpty();
+          showToast(`「${race.athleteName} / ${race.meetName}」を分析画面に読み込みました`);
+        }
+      }
+
+      /* ----------------------------------------------------------------------
+         11. localStorage 永続化・重複保存確認・削除処理
+         ---------------------------------------------------------------------- */
+      function getDefaultSampleRaces() {
+        return [
+          {
+            id: 'sample_mizuno_fly100',
+            savedAt: '2026-11-15T14:00:00.000Z',
+            meetName: '26東スイ招待予選',
+            raceDate: '2026/11/15',
+            athleteName: '水野 吉晴',
+            stroke: 'Fly',
+            distance: 100,
+            officialTime: '55.96',
+            officialRt: '0.65',
+            youtubeUrl: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+            youtubeVideoId: 'aqz-KE-bpKQ',
+            youtubeStartSeconds: 0,
+            videoSourceType: 'youtube',
+            officialLaps: [26.28, 29.68],
+            officialLapDetails: [
+              { dist: 25, lapCum: 11.62, split25: 11.62, split50: null, split100: null },
+              { dist: 50, lapCum: 26.28, split25: 14.66, split50: 26.28, split100: null },
+              { dist: 75, lapCum: 40.45, split25: 14.17, split50: null, split100: null },
+              { dist: 100, lapCum: 55.96, split25: 15.51, split50: 29.68, split100: 55.96 }
+            ],
+            turnEndMode: '15m',
+            start: { gun: 1.000, takeoff: 1.650, entry: 2.010, breakout: 5.420, mark15m: 7.380, kicks: '7' },
+            turns: [
+              { turnIndex: 1, distanceMark: 50, in5m: 24.750, touch: 27.280, pushoff: 28.050, breakout: 31.650, out15m: 34.120, kicks: '6' }
+            ]
+          },
+          {
+            id: 'sample_nakanishi_ba100_1',
+            savedAt: '2026-10-20T11:20:00.000Z',
+            meetName: '26カンカレ決勝',
+            raceDate: '2026/10/20',
+            athleteName: '中西 祥旗',
+            stroke: 'Ba',
+            distance: 100,
+            officialTime: '55.40',
+            officialRt: '0.58',
+            youtubeUrl: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+            youtubeVideoId: 'aqz-KE-bpKQ',
+            youtubeStartSeconds: 0,
+            videoSourceType: 'youtube',
+            officialLaps: [26.85, 28.55],
+            officialLapDetails: [],
+            turnEndMode: '15m',
+            start: { gun: 1.000, takeoff: 1.580, entry: 1.920, breakout: 6.150, mark15m: 7.550, kicks: '9' },
+            turns: [
+              { turnIndex: 1, distanceMark: 50, in5m: 25.300, touch: 27.850, pushoff: 28.480, breakout: 32.900, out15m: 34.620, kicks: '8' }
+            ]
+          },
+          {
+            id: 'sample_nakanishi_ba100_2',
+            savedAt: '2026-08-12T09:45:00.000Z',
+            meetName: '26インカレ予選',
+            raceDate: '2026/08/12',
+            athleteName: '中西 祥旗',
+            stroke: 'Ba',
+            distance: 100,
+            officialTime: '55.92',
+            officialRt: '0.60',
+            youtubeUrl: '',
+            youtubeVideoId: '',
+            youtubeStartSeconds: 0,
+            videoSourceType: 'none',
+            officialLaps: [27.10, 28.82],
+            officialLapDetails: [],
+            turnEndMode: '15m',
+            start: { gun: 1.000, takeoff: 1.600, entry: 1.960, breakout: 5.950, mark15m: 7.720, kicks: '8' },
+            turns: [
+              { turnIndex: 1, distanceMark: 50, in5m: 25.520, touch: 28.100, pushoff: 28.780, breakout: 32.850, out15m: 34.950, kicks: '7' }
+            ]
+          },
+          {
+            id: 'sample_nakanishi_fr50',
+            savedAt: '2026-07-03T15:00:00.000Z',
+            meetName: '26チャレンジ公認',
+            raceDate: '2026/07/03',
+            athleteName: '中西 祥旗',
+            stroke: 'Fr',
+            distance: 50,
+            officialTime: '22.62',
+            officialRt: '0.61',
+            youtubeUrl: '',
+            youtubeVideoId: '',
+            youtubeStartSeconds: 0,
+            videoSourceType: 'none',
+            officialLaps: [22.62],
+            officialLapDetails: [],
+            turnEndMode: '15m',
+            start: { gun: 1.000, takeoff: 1.610, entry: 1.940, breakout: 4.820, mark15m: 6.480, kicks: '5' },
+            turns: []
+          }
+        ];
+      }
+
+      function initSavedRaces() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              state.savedRaces = parsed;
+              updateSavedBadges();
+              return;
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        state.savedRaces = getDefaultSampleRaces();
+        persistSavedRaces();
+        updateSavedBadges();
+      }
+
+      function persistSavedRaces() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.savedRaces));
+          updateSavedBadges();
+        } catch (e) {
+          showToast('保存に失敗しました（ブラウザ容量制限など）');
+        }
+      }
+
+      function appendSampleRacesToStorage() {
+        const samples = getDefaultSampleRaces();
+        const existingIds = new Set(state.savedRaces.map(r => r.id));
+        let added = 0;
+        samples.forEach(s => {
+          if (!existingIds.has(s.id)) {
+            state.savedRaces.push(s);
+            added++;
+          } else {
+            state.savedRaces.push({ ...s, id: `${s.id}_${Date.now()}_${added}` });
+            added++;
+          }
+        });
+        persistSavedRaces();
+        renderCompareSelector();
+        showToast(`サンプルデータを ${added} 件追加しました`);
+      }
+
+      function buildCurrentRacePayload() {
+        const turnCount = getTurnCount();
+        const st = computeStartMetricsFromObj(state.start, state.stroke);
+        const turnsList = [];
+        for (let i = 0; i < turnCount; i++) {
+          const t = state.turns[i];
+          const tm = computeTurnMetricsFromObj(t, state.turnEndMode, state.stroke);
+          turnsList.push({
+            ...t,
+            calculated: {
+              approachSec: tm.approach !== null ? Number(tm.approach.toFixed(3)) : null,
+              wallSec: tm.wall !== null ? Number(tm.wall.toFixed(3)) : null,
+              underwaterSec: tm.uw !== null ? Number(tm.uw.toFixed(3)) : null,
+              breakoutTo15mSec: tm.swim !== null ? Number(tm.swim.toFixed(3)) : null,
+              totalTurnSec: tm.total !== null ? Number(tm.total.toFixed(3)) : null
+            }
+          });
+        }
+
+        // YouTubeリンク情報の確実な収集（入力欄を最優先し、未入力時はstateからフォールバック）
+        const rawInputUrl = els.ytUrlInput ? els.ytUrlInput.value.trim() : '';
+        const candidateUrl = rawInputUrl || (state.youtubeUrl ? state.youtubeUrl.trim() : '');
+        const parsedYt = candidateUrl ? parseYouTubeUrl(candidateUrl) : null;
+
+        let finalYoutubeUrl = '';
+        let finalYoutubeVideoId = '';
+        let finalYoutubeStartSeconds = 0;
+
+        if (parsedYt) {
+          finalYoutubeVideoId = parsedYt.videoId;
+          finalYoutubeStartSeconds = parsedYt.startSeconds;
+          finalYoutubeUrl = /^https?:\/\//i.test(candidateUrl)
+            ? candidateUrl
+            : (/^[a-zA-Z0-9_-]{11}$/.test(candidateUrl)
+                ? `https://www.youtube.com/watch?v=${parsedYt.videoId}`
+                : `https://${candidateUrl}`);
+        } else if (candidateUrl) {
+          finalYoutubeUrl = candidateUrl;
+          finalYoutubeVideoId = state.youtubeVideoId || '';
+          finalYoutubeStartSeconds = state.youtubeStartSeconds || 0;
+        } else if (state.youtubeVideoId) {
+          finalYoutubeVideoId = state.youtubeVideoId;
+          finalYoutubeUrl = `https://www.youtube.com/watch?v=${state.youtubeVideoId}`;
+          finalYoutubeStartSeconds = state.youtubeStartSeconds || 0;
+        }
+
+        return {
+          savedAt: new Date().toISOString(),
+          meetName: (state.meetName || '').trim() || '大会名未設定',
+          raceDate: (state.raceDate || '').trim() || new Date().toISOString().slice(0, 10),
+          athleteName: (state.athleteName || '').trim() || '選手名未設定',
+          stroke: state.stroke,
+          distance: Number(state.distance),
+          officialTime: (state.officialTime || '').trim(),
+          officialRt: (state.officialRt || '').trim(),
+          youtubeUrl: finalYoutubeUrl,
+          youtubeVideoId: finalYoutubeVideoId,
+          youtubeStartSeconds: finalYoutubeStartSeconds,
+          videoSourceType: finalYoutubeUrl ? 'youtube' : state.videoSourceType,
+          officialLaps: [...state.officialLaps],
+          officialLapDetails: state.officialLapDetails.map(d => ({ ...d })),
+          turnEndMode: state.turnEndMode,
+          start: {
+            ...state.start,
+            calculated: {
+              rtSec: st.rt !== null ? Number(st.rt.toFixed(3)) : null,
+              airSec: st.air !== null ? Number(st.air.toFixed(3)) : null,
+              underwaterSec: st.uw !== null ? Number(st.uw.toFixed(3)) : null,
+              swimTo15mSec: st.swim !== null ? Number(st.swim.toFixed(3)) : null,
+              total15mSec: st.total15m !== null ? Number(st.total15m.toFixed(3)) : null
+            }
+          },
+          turns: turnsList
+        };
+      }
+
+      function handleSaveButtonClick() {
+        const candidate = buildCurrentRacePayload();
+
+        // 同一選手・同一大会・同一種目・同一距離の既存データを検索
+        const existing = state.savedRaces.find(r =>
+          (r.athleteName || '').trim() === candidate.athleteName &&
+          (r.meetName || '').trim() === candidate.meetName &&
+          r.stroke === candidate.stroke &&
+          Number(r.distance) === candidate.distance
+        );
+
+        if (existing) {
+          state.pendingSaveCandidate = candidate;
+          state.pendingDuplicateExistingId = existing.id;
+          els.duplicateSaveDesc.textContent = `「${candidate.athleteName} / ${candidate.meetName} / ${candidate.distance}m ${getStrokeLabel(candidate.stroke)}」は既に保存されています。`;
+          els.duplicateSaveModal.classList.add('open');
+          return;
+        }
+
+        commitNewRaceSave(candidate);
+      }
+
+      function commitNewRaceSave(candidate) {
+        const newRecord = {
+          id: `race_${Date.now()}`,
+          ...candidate
+        };
+        state.savedRaces.unshift(newRecord);
+        state.editingRaceId = newRecord.id;
+        persistSavedRaces();
+        renderCompareSelector();
+
+        showToast(
+          `保存しました: ${newRecord.athleteName} (${newRecord.distance}m ${getStrokeLabel(newRecord.stroke)})`,
+          {
+            label: '分析結果一覧で見る',
+            onClick: () => {
+              navigateTo('results', {
+                level: 'detail',
+                athleteName: newRecord.athleteName,
+                stroke: newRecord.stroke,
+                distance: newRecord.distance,
+                raceId: newRecord.id,
+                detailCompareRaceId: ''
+              });
+            }
+          }
+        );
+      }
+
+      function commitOverwriteRaceSave(existingId, candidate) {
+        const idx = state.savedRaces.findIndex(r => r.id === existingId);
+        if (idx === -1) {
+          commitNewRaceSave(candidate);
+          return;
+        }
+        const prevRecord = state.savedRaces[idx];
+
+        // 誤ってURL欄を空にして別項目だけ上書きした場合の保護フォールバック
+        const preservedYoutubeUrl = candidate.youtubeUrl || prevRecord.youtubeUrl || '';
+        const preservedYoutubeVideoId = candidate.youtubeVideoId || prevRecord.youtubeVideoId || '';
+        const preservedYoutubeStart = candidate.youtubeUrl
+          ? candidate.youtubeStartSeconds
+          : (prevRecord.youtubeStartSeconds || 0);
+
+        const updatedRecord = {
+          id: existingId,
+          ...candidate,
+          youtubeUrl: preservedYoutubeUrl,
+          youtubeVideoId: preservedYoutubeVideoId,
+          youtubeStartSeconds: preservedYoutubeStart,
+          videoSourceType: preservedYoutubeUrl ? 'youtube' : candidate.videoSourceType
+        };
+        state.savedRaces[idx] = updatedRecord;
+        state.editingRaceId = existingId;
+        persistSavedRaces();
+        renderCompareSelector();
+
+        showToast(
+          `上書き更新しました: ${updatedRecord.athleteName} (${updatedRecord.meetName})`,
+          {
+            label: '分析結果一覧で見る',
+            onClick: () => {
+              navigateTo('results', {
+                level: 'detail',
+                athleteName: updatedRecord.athleteName,
+                stroke: updatedRecord.stroke,
+                distance: updatedRecord.distance,
+                raceId: updatedRecord.id,
+                detailCompareRaceId: ''
+              });
+            }
+          }
+        );
+      }
+
+      function openSavedRacesModal() {
+        if (!state.savedRaces || state.savedRaces.length === 0) {
+          showToast('保存されているレースデータがありません');
+          return;
+        }
+        els.savedRacesSearchInput.value = '';
+        renderSavedRacesModalRows('');
+        els.savedRacesModal.classList.add('open');
+      }
+
+      function renderSavedRacesModalRows(keyword) {
+        const q = (keyword || '').trim().toLowerCase();
+        const items = state.savedRaces.filter(r => {
+          if (!q) return true;
+          const hay = `${r.meetName} ${r.athleteName} ${r.distance}m ${getStrokeLabel(r.stroke)} ${r.stroke}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+        els.savedRacesModalInfoText.textContent = `全 ${state.savedRaces.length} 件中 ${items.length} 件表示`;
+        els.savedRacesModalTableBody.innerHTML = items.map(r => {
+          const hasYt = Boolean((r.youtubeUrl && r.youtubeUrl.trim()) || r.youtubeVideoId);
+          return `
+            <tr class="csv-race-row" data-load-race-id="${r.id}">
+              <td><strong>${r.athleteName}</strong></td>
+              <td>${r.meetName}</td>
+              <td>${r.distance}m ${getStrokeLabel(r.stroke)} (${r.stroke})</td>
+              <td class="num"><strong>${r.officialTime || '-'}</strong></td>
+              <td>${hasYt ? `<span class="yt-linked-badge" style="margin-left:0;">▶ あり</span>` : `<span style="color:var(--text-muted); font-size:11px;">なし</span>`}</td>
+              <td><button type="button" class="btn btn-primary" style="padding:3px 9px; font-size:11px;">読込</button></td>
+            </tr>
+          `;
+        }).join('');
+
+        els.savedRacesModalTableBody.querySelectorAll('[data-load-race-id]').forEach(tr => {
+          tr.addEventListener('click', () => {
+            const target = state.savedRaces.find(r => r.id === tr.dataset.loadRaceId);
+            if (target) {
+              els.savedRacesModal.classList.remove('open');
+              loadRaceIntoAnalyzer(target);
+            }
+          });
+        });
+      }
+          }
+        );
+      }
+
+      function openDeleteConfirmModal(race) {
+        state.pendingDeleteRaceId = race.id;
+        els.deleteConfirmDesc.textContent = `「${race.athleteName} / ${race.meetName} (${race.distance}m ${getStrokeLabel(race.stroke)})」を削除しますか？この操作は取り消せません。`;
+        els.deleteConfirmModal.classList.add('open');
+      }
+
+      function executeDeleteRace() {
+        const targetId = state.pendingDeleteRaceId;
+        if (!targetId) return;
+        state.savedRaces = state.savedRaces.filter(r => r.id !== targetId);
+        persistSavedRaces();
+        els.deleteConfirmModal.classList.remove('open');
+        state.pendingDeleteRaceId = null;
+        showToast('分析データを削除しました');
+
+        if (state.currentView === 'results') {
+          state.resultsDrill.level = 'races';
+          renderResultsView();
+        }
+      }
+
+      function renderCompareSelector() {
+        const filtered = state.savedRaces.filter(r => {
+          if (!state.sameAthleteOnly) return true;
+          return (r.athleteName || '').trim() === (state.athleteName || '').trim() &&
+                 r.stroke === state.stroke &&
+                 Number(r.distance) === Number(state.distance);
+        });
+
+        let optionsHtml = `<option value="">-- 比較なし --</option>`;
+        filtered.forEach(r => {
+          const recStr = r.officialTime ? ` [${r.officialTime}]` : '';
+          optionsHtml += `<option value="${r.id}">${r.meetName} | ${r.athleteName} | ${r.distance}m ${getStrokeLabel(r.stroke)}${recStr}</option>`;
+        });
+
+        els.compareRaceSelect.innerHTML = optionsHtml;
+        if (filtered.some(r => r.id === state.compareRaceId)) {
+          els.compareRaceSelect.value = state.compareRaceId;
+        } else {
+          state.compareRaceId = '';
+          els.compareRaceSelect.value = '';
+        }
+      }
+
+      function getComparisonRace() {
+        if (!state.compareRaceId) return null;
+        return state.savedRaces.find(r => r.id === state.compareRaceId) || null;
+      }
+
+      /* ----------------------------------------------------------------------
+         12. デモ数値＆サンプルCSV出力＆バックアップ
          ---------------------------------------------------------------------- */
       function buildSampleCsvContent() {
         return [
           '水野 吉晴_100m_バタフライ,,,,',
           'name,date,distance,style,event',
-          '水野 吉晴,1970/01/01,100,バタフライ,26東スイ招待予選',
+          '水野 吉晴,2026/11/15,100,バタフライ,26東スイ招待予選',
           ',,,,',
           ',laps,25m split,50m split,100m split',
           'リアクションタイム,0.65,,,',
@@ -3916,19 +5317,24 @@
       }
 
       function loadFullDemo() {
-        state.meetName = '2026/11/15 秋季記録会';
+        state.editingRaceId = null;
+        state.meetName = '26東スイ招待予選';
         state.raceDate = '2026/11/15';
-        state.athleteName = '山田 太郎';
-        state.stroke = 'Fr';
+        state.athleteName = '水野 吉晴';
+        state.stroke = 'Fly';
         state.distance = 100;
-        state.officialTime = '50.12';
-        state.officialRt = '0.63';
-        state.officialLaps = [24.10, 26.02];
-        state.officialLapDetails = [];
-        state.csvSplitConverted = false;
+        state.officialTime = '55.96';
+        state.officialRt = '0.65';
+        state.officialLaps = [26.28, 29.68];
+        state.officialLapDetails = [
+          { dist: 25, lapCum: 11.62, split25: 11.62, split50: null, split100: null },
+          { dist: 50, lapCum: 26.28, split25: 14.66, split50: 26.28, split100: null },
+          { dist: 75, lapCum: 40.45, split25: 14.17, split50: null, split100: null },
+          { dist: 100, lapCum: 55.96, split25: 15.51, split50: 29.68, split100: 55.96 }
+        ];
 
         els.meetNameInput.value = state.meetName;
-        if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
+        els.raceDateInput.value = state.raceDate;
         els.athleteNameInput.value = state.athleteName;
         els.strokeSelect.value = state.stroke;
         els.distanceSelect.value = String(state.distance);
@@ -3937,145 +5343,109 @@
 
         state.start = {
           gun: 1.000,
-          takeoff: 1.630,
-          entry: 1.980,
-          breakout: 5.260,
-          mark15m: 7.120,
-          kicks: '6'
+          takeoff: 1.650,
+          entry: 2.010,
+          breakout: 5.420,
+          mark15m: 7.380,
+          kicks: '7'
         };
         state.turns[0] = {
           turnIndex: 1,
           distanceMark: 50,
-          in5m: 22.650,
-          touch: 25.100,
-          pushoff: 25.740,
-          breakout: 29.220,
-          out15m: 31.580,
-          kicks: '5'
+          in5m: 24.750,
+          touch: 27.280,
+          pushoff: 28.050,
+          breakout: 31.650,
+          out15m: 34.120,
+          kicks: '6'
         };
 
-        if (state.savedRaces.length > 0) {
-          state.compareRaceId = state.savedRaces[0].id;
-        }
         state.activeFieldId = 'start.gun';
         seekToTime(1.000);
         renderStampPanel();
         renderCompareSelector();
         renderDashboard();
-        showToast('デモ数値と過去比較データをセットしました');
-      }
-
-      function buildCurrentJsonString() {
-        const turnCount = getTurnCount();
-        const st = computeStartMetricsFromObj(state.start, state.stroke);
-        const turnsOut = [];
-        for (let i = 0; i < turnCount; i++) {
-          const t = state.turns[i];
-          const tm = computeTurnMetricsFromObj(t, state.turnEndMode, state.stroke);
-          turnsOut.push({
-            turnIndex: t.turnIndex,
-            distanceMark: t.distanceMark,
-            kicks: state.stroke === 'Br' ? null : (t.kicks !== '' ? Number(t.kicks) : null),
-            timestamps: { in5m: t.in5m, touch: t.touch, pushoff: t.pushoff, breakout: t.breakout, out15m: t.out15m },
-            calculated: {
-              approachSec: tm.approach !== null ? Number(tm.approach.toFixed(3)) : null,
-              wallSec: tm.wall !== null ? Number(tm.wall.toFixed(3)) : null,
-              underwaterSec: tm.uw !== null ? Number(tm.uw.toFixed(3)) : null,
-              breakoutTo15mSec: tm.swim !== null ? Number(tm.swim.toFixed(3)) : null,
-              totalTurnSec: tm.total !== null ? Number(tm.total.toFixed(3)) : null
-            }
-          });
-        }
-        return JSON.stringify({
-          meetName: state.meetName,
-          raceDate: state.raceDate,
-          athleteName: state.athleteName,
-          stroke: state.stroke,
-          distance: state.distance,
-          officialTime: state.officialTime,
-          officialRt: state.officialRt,
-          officialLaps: state.officialLaps,
-          officialLapDetails: state.officialLapDetails,
-          turnEndMode: state.turnEndMode,
-          start: {
-            ...state.start,
-            calculated: {
-              rtSec: st.rt !== null ? Number(st.rt.toFixed(3)) : null,
-              airSec: st.air !== null ? Number(st.air.toFixed(3)) : null,
-              underwaterSec: st.uw !== null ? Number(st.uw.toFixed(3)) : null,
-              swimTo15mSec: st.swim !== null ? Number(st.swim.toFixed(3)) : null,
-              total15mSec: st.total15m !== null ? Number(st.total15m.toFixed(3)) : null
-            }
-          },
-          turns: turnsOut
-        }, null, 2);
-      }
-
-      function renderSavedModalList() {
-        if (state.savedRaces.length === 0) {
-          els.savedRacesListContainer.innerHTML = `<div style="font-size:12px; color:var(--text-muted);">保存されたレースはまだありません。</div>`;
-          return;
-        }
-        els.savedRacesListContainer.innerHTML = state.savedRaces.map(r => `
-          <div class="saved-list-item">
-            <div>
-              <strong>${r.athleteName}</strong> ｜ ${r.meetName} ｜ ${r.distance}m ${getStrokeLabel(r.stroke)} ${r.officialTime ? `(${r.officialTime})` : ''}
-            </div>
-            <div style="display:flex; gap:5px;">
-              <button type="button" class="btn btn-secondary btn-load-saved" data-id="${r.id}" style="padding:3px 7px; font-size:11px;">呼出</button>
-              <button type="button" class="btn btn-secondary btn-del-saved" data-id="${r.id}" style="padding:3px 7px; font-size:11px; color:var(--accent-rose);">削除</button>
-            </div>
-          </div>
-        `).join('');
-
-        els.savedRacesListContainer.querySelectorAll('.btn-load-saved').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const target = state.savedRaces.find(x => x.id === btn.dataset.id);
-            if (!target) return;
-            state.meetName = target.meetName;
-            state.raceDate = target.raceDate || '';
-            state.athleteName = target.athleteName;
-            state.stroke = target.stroke;
-            state.distance = target.distance;
-            state.officialTime = target.officialTime || '';
-            state.officialRt = target.officialRt || '';
-            state.officialLaps = target.officialLaps || [];
-            state.officialLapDetails = target.officialLapDetails || [];
-            state.start = { ...target.start };
-            target.turns.forEach((t, idx) => { if (state.turns[idx]) state.turns[idx] = { ...t }; });
-
-            els.meetNameInput.value = state.meetName;
-            if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
-            els.athleteNameInput.value = state.athleteName;
-            els.strokeSelect.value = state.stroke;
-            els.distanceSelect.value = String(state.distance);
-            els.officialTimeInput.value = state.officialTime;
-            els.officialRtInput.value = state.officialRt;
-
-            renderStampPanel();
-            renderCompareSelector();
-            renderDashboard();
-            els.storageModal.classList.remove('open');
-            showToast('保存データを呼び出しました');
-          });
-        });
-
-        els.savedRacesListContainer.querySelectorAll('.btn-del-saved').forEach(btn => {
-          btn.addEventListener('click', () => {
-            state.savedRaces = state.savedRaces.filter(x => x.id !== btn.dataset.id);
-            persistSavedRaces();
-            renderSavedModalList();
-            renderCompareSelector();
-            renderDashboard();
-            showToast('保存データを削除しました');
-          });
-        });
+        showToast('デモ数値をセットしました（「保存する」で一覧へ保存できます）');
       }
 
       /* ----------------------------------------------------------------------
-         11. 全イベントリスナー登録
+         13. 全イベントリスナー登録
          ---------------------------------------------------------------------- */
       function initEvents() {
+        // ホーム画面ナビゲーション
+        els.btnGoAnalyzeFromHome.addEventListener('click', () => navigateTo('analyze'));
+        els.btnGoResultsFromHome.addEventListener('click', () => navigateTo('results', { level: 'athletes' }));
+
+        // ホーム画面バックアップ＆サンプル追加
+        els.btnHomeExportJson.addEventListener('click', () => {
+          els.backupJsonTextarea.value = JSON.stringify(state.savedRaces, null, 2);
+          els.backupModal.classList.add('open');
+        });
+        els.btnCloseBackupModal.addEventListener('click', () => els.backupModal.classList.remove('open'));
+        els.backupModal.addEventListener('click', (e) => {
+          if (e.target === els.backupModal) els.backupModal.classList.remove('open');
+        });
+        els.btnCopyBackupJson.addEventListener('click', () => {
+          els.backupJsonTextarea.select();
+          document.execCommand('copy');
+          showToast('バックアップJSONをコピーしました');
+        });
+        els.btnDownloadBackupJson.addEventListener('click', () => {
+          const blob = new Blob([els.backupJsonTextarea.value], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `swim_analytics_backup_${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+
+        els.btnHomeImportJson.addEventListener('click', () => els.homeImportJsonInput.click());
+        els.homeImportJsonInput.addEventListener('change', async (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            const list = Array.isArray(parsed) ? parsed : (parsed && parsed.start ? [parsed] : null);
+            if (!list) throw new Error('Invalid JSON');
+            const existingIds = new Set(state.savedRaces.map(r => r.id));
+            let count = 0;
+            list.forEach((item, idx) => {
+              const rec = {
+                ...item,
+                id: item.id && !existingIds.has(item.id) ? item.id : `imported_${Date.now()}_${idx}`
+              };
+              state.savedRaces.unshift(rec);
+              count++;
+            });
+            persistSavedRaces();
+            showToast(`${count}件のレースデータを読み込みました`);
+          } catch (err) {
+            showToast('JSONファイルの形式が正しくありません');
+          }
+          e.target.value = '';
+        });
+
+        els.btnHomeAddSampleData.addEventListener('click', appendSampleRacesToStorage);
+
+        // 分析画面ナビゲーション
+        els.btnAnalyzeToHome.addEventListener('click', () => navigateTo('home'));
+        els.btnOpenSavedRacesModal.addEventListener('click', openSavedRacesModal);
+        els.btnAnalyzeToResults.addEventListener('click', () => navigateTo('results', { level: 'athletes' }));
+
+        // 保存データ読込モーダル
+        els.btnCloseSavedRacesModal.addEventListener('click', () => els.savedRacesModal.classList.remove('open'));
+        els.btnCancelSavedRacesModal.addEventListener('click', () => els.savedRacesModal.classList.remove('open'));
+        els.savedRacesModal.addEventListener('click', (e) => {
+          if (e.target === els.savedRacesModal) els.savedRacesModal.classList.remove('open');
+        });
+        els.savedRacesSearchInput.addEventListener('input', (e) => renderSavedRacesModalRows(e.target.value));
+          else if (lvl === 'detail') { state.resultsDrill.level = 'races'; renderResultsView(); }
+        });
+
         // CSV関連
         els.btnImportCsv.addEventListener('click', () => els.csvFileInput.click());
         els.btnOpenCsvModal.addEventListener('click', openCsvRaceSelectModal);
@@ -4097,6 +5467,25 @@
         });
         els.csvSearchInput.addEventListener('input', (e) => renderCsvModalRows(e.target.value));
 
+        // 重複保存モーダル
+        els.btnCloseDupModal.addEventListener('click', () => els.duplicateSaveModal.classList.remove('open'));
+        els.btnDupCancel.addEventListener('click', () => els.duplicateSaveModal.classList.remove('open'));
+        els.btnDupSaveAsNew.addEventListener('click', () => {
+          els.duplicateSaveModal.classList.remove('open');
+          if (state.pendingSaveCandidate) commitNewRaceSave(state.pendingSaveCandidate);
+        });
+        els.btnDupOverwrite.addEventListener('click', () => {
+          els.duplicateSaveModal.classList.remove('open');
+          if (state.pendingSaveCandidate && state.pendingDuplicateExistingId) {
+            commitOverwriteRaceSave(state.pendingDuplicateExistingId, state.pendingSaveCandidate);
+          }
+        });
+
+        // 削除確認モーダル
+        els.btnCloseDelModal.addEventListener('click', () => els.deleteConfirmModal.classList.remove('open'));
+        els.btnDelCancel.addEventListener('click', () => els.deleteConfirmModal.classList.remove('open'));
+        els.btnDelExecute.addEventListener('click', executeDeleteRace);
+
         // メタデータ入力
         els.athleteNameInput.addEventListener('input', (e) => {
           state.athleteName = e.target.value;
@@ -4107,17 +5496,18 @@
           state.meetName = e.target.value;
           renderDashboard();
         });
-        if (els.raceDateInput) {
-          els.raceDateInput.addEventListener('input', (e) => {
-            state.raceDate = e.target.value;
-            renderDashboard();
-          });
-        }
+        els.raceDateInput.addEventListener('input', (e) => {
+          state.raceDate = e.target.value;
+          renderDashboard();
+        });
         els.strokeSelect.addEventListener('change', (e) => {
           state.stroke = e.target.value;
           renderStampPanel();
           renderCompareSelector();
           renderDashboard();
+          if (state.stroke === 'Ba') {
+            showToast('背泳ぎを選択：水中キック入力を「バサロキック」に切り替えました');
+          }
         });
         els.distanceSelect.addEventListener('change', (e) => {
           state.distance = Number(e.target.value);
@@ -4145,9 +5535,9 @@
 
         // デモ＆保存
         els.btnLoadDemo.addEventListener('click', loadFullDemo);
-        els.btnSaveAnalysis.addEventListener('click', saveCurrentAnalysis);
+        els.btnSaveAnalysis.addEventListener('click', handleSaveButtonClick);
 
-        // ソース切替タブ＆動画読込
+        // 動画ソース切替＆読込
         els.tabLocalVideo.addEventListener('click', () => switchSourceTab('local'));
         els.tabYoutubeVideo.addEventListener('click', () => switchSourceTab('youtube'));
 
@@ -4163,6 +5553,9 @@
         });
 
         els.btnLoadYt.addEventListener('click', () => loadYouTubeFromInput(els.ytUrlInput.value));
+        els.ytUrlInput.addEventListener('input', (e) => {
+          state.youtubeUrl = e.target.value.trim();
+        });
         els.ytUrlInput.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -4291,17 +5684,27 @@
           renderDashboard();
         });
 
-        // キーボードショートカット（input/select/textareaフォーカス時およびモーダル表示中は無効化）
+        // キーボードショートカット（分析画面がアクティブで入力欄にフォーカスがない場合のみ）
         window.addEventListener('keydown', (e) => {
-          const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-          if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-          if (els.storageModal.classList.contains('open') || els.csvSelectModal.classList.contains('open')) {
-            if (e.key === 'Escape') {
-              els.storageModal.classList.remove('open');
-              els.csvSelectModal.classList.remove('open');
-            }
+          if (e.key === 'Escape') {
+            els.csvSelectModal.classList.remove('open');
+            els.duplicateSaveModal.classList.remove('open');
+            els.deleteConfirmModal.classList.remove('open');
+            els.backupModal.classList.remove('open');
+            els.savedRacesModal.classList.remove('open');
             return;
           }
+
+          if (state.currentView !== 'analyze') return;
+          const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+          if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+          if (
+            els.csvSelectModal.classList.contains('open') ||
+            els.duplicateSaveModal.classList.contains('open') ||
+            els.deleteConfirmModal.classList.contains('open') ||
+            els.backupModal.classList.contains('open') ||
+            els.savedRacesModal.classList.contains('open')
+          ) return;
 
           if (e.code === 'Space') {
             e.preventDefault();
@@ -4321,74 +5724,8 @@
           }
         });
 
-        // 保存管理 / JSONモーダル
-        els.btnManageSaved.addEventListener('click', () => {
-          renderSavedModalList();
-          els.jsonOutputText.value = buildCurrentJsonString();
-          els.storageModal.classList.add('open');
-        });
-        els.btnCloseModal.addEventListener('click', () => els.storageModal.classList.remove('open'));
-        els.storageModal.addEventListener('click', (e) => {
-          if (e.target === els.storageModal) els.storageModal.classList.remove('open');
-        });
-
-        els.btnCopyJson.addEventListener('click', () => {
-          els.jsonOutputText.select();
-          document.execCommand('copy');
-          showToast('JSONをクリップボードにコピーしました');
-        });
-
-        els.btnDownloadJson.addEventListener('click', () => {
-          const blob = new Blob([els.jsonOutputText.value], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `swim_analysis_${(state.athleteName || 'athlete').replace(/\s+/g, '_')}_${state.distance}m.json`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        });
-
-        els.btnImportJson.addEventListener('click', () => {
-          try {
-            const parsed = JSON.parse(els.jsonOutputText.value);
-            if (!parsed || !parsed.start) throw new Error('Invalid format');
-            state.meetName = parsed.meetName || state.meetName;
-            state.raceDate = parsed.raceDate || state.raceDate;
-            state.athleteName = parsed.athleteName || state.athleteName;
-            state.stroke = parsed.stroke || 'Fr';
-            state.distance = Number(parsed.distance) || 100;
-            state.officialTime = parsed.officialTime || '';
-            state.officialRt = parsed.officialRt || '';
-            state.officialLaps = parsed.officialLaps || [];
-            state.officialLapDetails = parsed.officialLapDetails || [];
-            state.start = { ...state.start, ...parsed.start };
-            if (Array.isArray(parsed.turns)) {
-              parsed.turns.forEach((t, idx) => {
-                if (state.turns[idx]) state.turns[idx] = { ...state.turns[idx], ...t };
-              });
-            }
-            els.meetNameInput.value = state.meetName;
-            if (els.raceDateInput) els.raceDateInput.value = state.raceDate;
-            els.athleteNameInput.value = state.athleteName;
-            els.strokeSelect.value = state.stroke;
-            els.distanceSelect.value = String(state.distance);
-            els.officialTimeInput.value = state.officialTime;
-            els.officialRtInput.value = state.officialRt;
-
-            renderStampPanel();
-            renderCompareSelector();
-            renderDashboard();
-            els.storageModal.classList.remove('open');
-            showToast('JSONデータを反映しました');
-          } catch (err) {
-            showToast('JSONの形式が正しくありません');
-          }
-        });
-
         setInterval(() => {
-          if (state.videoSourceType === 'youtube' && state.ytPlayer && state.ytPlayerReady && typeof state.ytPlayer.getPlayerState === 'function') {
+          if (state.currentView === 'analyze' && state.videoSourceType === 'youtube' && state.ytPlayer && state.ytPlayerReady && typeof state.ytPlayer.getPlayerState === 'function') {
             if (state.ytPlayer.getPlayerState() === 1) {
               updateTimeDisplay();
             }
@@ -4397,7 +5734,7 @@
       }
 
       /* ----------------------------------------------------------------------
-         12. 初期起動（DOMContentLoaded + try-catch保護）
+         14. 初期起動
          ---------------------------------------------------------------------- */
       window.addEventListener('DOMContentLoaded', () => {
         try {
@@ -4408,6 +5745,7 @@
           renderCompareSelector();
           renderDashboard();
           updateTimeDisplay();
+          navigateTo('home');
         } catch (err) {
           showFatalError(err);
         }
